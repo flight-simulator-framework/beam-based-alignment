@@ -1,4 +1,5 @@
 import numpy as np
+from machine_interfaces.Knobs.jitter_subtraction import explain_reference_selection, fit_jitter_model
 
 try:
     from PyQt6.QtCore import Qt
@@ -192,7 +193,7 @@ class QM_mode_helpers:
             self._hist_wake.clear()
             self._refresh_metric_plots_for_mode()
 
-        w1, w2, w3, rcond, iters, gain, beta = self._read_params()
+        w1, w2, w3, rcond, iters, gain, beta = self._read_params()[:7]
 
         qcorrs, bpms_selected = self._get_selection()
         self._build_jitter_model_for_correction(actuators=qcorrs, bpms=bpms_selected)

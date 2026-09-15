@@ -8,8 +8,8 @@ except ImportError:
     from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from BBA_GUI import MainWindow as CorrectorBBAWindow
-from Backend.ActuatorMode import ActuatorMode
-from Backend.BBA_helpers.QM_mode_helpers import QM_mode_helpers
+from machine_interfaces.Backend.ActuatorMode import ActuatorMode
+from beam_based_alignment.BBA_helpers.QM_mode_helpers import QM_mode_helpers
 
 
 class MainWindow(QM_mode_helpers, CorrectorBBAWindow):
@@ -28,7 +28,6 @@ class MainWindow(QM_mode_helpers, CorrectorBBAWindow):
         self.setWindowTitle("BBA QM GUI")
         self.actuator_mode_label.setVisible(False)
         self.actuator_mode_combo.setVisible(False)
-        self.sextupole_restoration_button.setVisible(False)
 
         self.correctors_list.clear()
         self.correctors_list.addItems(self.qm_corrs)
@@ -132,7 +131,7 @@ class MainWindow(QM_mode_helpers, CorrectorBBAWindow):
 
 def main():
     app = QApplication(sys.argv)
-    from Backend import SelectInterface
+    from machine_interfaces.Backend import SelectInterface
 
     interface = SelectInterface.choose_acc_and_interface()
     if interface is None:

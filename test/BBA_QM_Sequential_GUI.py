@@ -1,3 +1,4 @@
+import beam_based_alignment
 import os
 import sys
 from datetime import datetime
@@ -19,11 +20,11 @@ from PyQt6.QtWidgets import (
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from ChangeBpmsWeights_BBA import ChangeBpmsWeights_BBA
-from LogConsole_BBA import LogConsole
-from SaveOrLoad_BBA import SaveOrLoad_BBA
-from jitter_subtraction import explain_reference_selection, fit_jitter_model, apply_jitter_subtraction
-from SelectInterface import choose_acc_and_interface
+from beam_based_alignment.BBA_helpers.BPM_weights import BPM_weights as ChangeBpmsWeights_BBA
+from machine_interfaces.Backend.LogConsole import LogConsole
+from machine_interfaces.Backend.SaveOrLoad import SaveOrLoad as SaveOrLoad_BBA
+from machine_interfaces.Knobs.jitter_subtraction import explain_reference_selection, fit_jitter_model, apply_jitter_subtraction
+from machine_interfaces.Backend.SelectInterface import choose_acc_and_interface
 
 matplotlib.use("QtAgg")
 
@@ -103,7 +104,7 @@ class MainWindow(QMainWindow, SaveOrLoad_BBA):
         self._hist_wake_x = []
         self._hist_wake_y = []
 
-        ui_path = os.path.join(os.path.dirname(__file__), "BBA_GUI.ui")
+        ui_path = os.path.join(os.path.dirname(beam_based_alignment.__file__), "UI files", "BBA_GUI.ui")
         uic.loadUi(ui_path, self)
         self.setWindowTitle("BBA_QM_Sequential_GUI")
 

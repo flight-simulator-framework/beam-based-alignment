@@ -1,10 +1,9 @@
 import sys
-sys.path.append('/userhome/alatina/flight-simulator')
 
 # from InterfaceATF2_Linac import InterfaceATF2_Linac
-from Interfaces.ATF2.InterfaceATF2_Ext_RFTrack import InterfaceATF2_Ext_RFTrack
-from Response import Response
-from State import State
+from machine_interfaces.Interfaces.ATF2.InterfaceATF2_Ext_RFTrack import InterfaceATF2_Ext_RFTrack
+from response_matrix.Response import Response
+from machine_interfaces.Backend.State import State
 
 import matplotlib.pyplot as plt
 import numpy as np

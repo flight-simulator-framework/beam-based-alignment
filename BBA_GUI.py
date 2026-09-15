@@ -1,3 +1,4 @@
+import beam_based_alignment
 import sys, os, re, matplotlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -24,16 +25,16 @@ except ImportError:
 matplotlib.use("QtAgg")
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from Backend.LogConsole import LogConsole
-from Backend.BBA_helpers.TestOrbits_BBA import TestOrbits
-from Backend.SaveOrLoad import SaveOrLoad
-from Backend.ResponseMatrix_DFS_WFS import ResponseMatrix_DFS_WFS, AdaptiveResponseMatrix
+from machine_interfaces.Backend.LogConsole import LogConsole
+from beam_based_alignment.BBA_helpers.TestOrbits_BBA import TestOrbits
+from machine_interfaces.Backend.SaveOrLoad import SaveOrLoad
+from response_matrix.ResponseMatrix_DFS_WFS import ResponseMatrix_DFS_WFS, AdaptiveResponseMatrix
 import matplotlib.pyplot as plt
-from Backend.BBA_helpers.BPM_weights import BPM_weights
-from Backend.ActuatorMode import ActuatorMode
+from beam_based_alignment.BBA_helpers.BPM_weights import BPM_weights
+from machine_interfaces.Backend.ActuatorMode import ActuatorMode
 from traceback import print_exception
-from Interfaces.interface_setup import INTERFACE_SETUP
-from Knobs.jitter_subtraction import (apply_jitter_subtraction, explain_reference_selection, fit_jitter_model)
+from machine_interfaces.Interfaces.interface_setup import INTERFACE_SETUP
+from machine_interfaces.Knobs.jitter_subtraction import (apply_jitter_subtraction, explain_reference_selection, fit_jitter_model)
 
 
 class PlotPopup(QMainWindow):
@@ -95,7 +96,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self._cancel = False
         self._number_re = re.compile(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
         self.reset_reference_orbit = False
-        ui_path = os.path.join(os.path.dirname(__file__), "UI files/BBA_GUI.ui")
+        ui_path = os.path.join(os.path.dirname(beam_based_alignment.__file__), "UI files/BBA_GUI.ui")
         uic.loadUi(ui_path, self)
         self._clock_zone_name = self._get_clock_zone()
         self._setup_machine_clock()
@@ -248,7 +249,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             if pyqt_version == 6
             else Qt.SmoothTransformation
         )
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = os.path.dirname(beam_based_alignment.__file__)
         logo_path = os.path.join(base_dir, "UI files", "Assets", "CERN_logo.png")
         if not os.path.isfile(logo_path):
             return
@@ -1469,14 +1470,13 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def handling(self, app_name, cwd=None, args=None):
         try:
-            path = os.path.join(os.path.dirname(__file__), app_name)
-            workdir = os.path.expanduser(os.path.expandvars(cwd))
+            workdir = os.path.expanduser(os.path.expandvars(cwd or self.cwd))
             proc = QProcess(self)
             proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
             proc.setWorkingDirectory(workdir)
             env = QProcessEnvironment.systemEnvironment()
             proc.setProcessEnvironment(env)
-            argv = [path] + list(args or [])
+            argv = ["-m", os.path.splitext(os.path.basename(app_name))[0]] + list(args or [])
             proc.start(sys.executable, argv)
             proc.readyReadStandardOutput.connect(
                 lambda p=proc: print(bytes(p.readAllStandardOutput()).decode(errors="ignore")))
@@ -1522,7 +1522,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    from Backend import SelectInterface
+    from machine_interfaces.Backend import SelectInterface
 
     dialog = SelectInterface.choose_acc_and_interface()
     if dialog is None:

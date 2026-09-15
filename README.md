@@ -21,12 +21,15 @@ Optional jitter subtraction uses upstream reference BPMs to estimate correlated 
 
 The plots show how the measured orbit and enabled correction objectives change over successive iterations. Session data and settings are saved for subsequent inspection.
 
-## Installation
+## Installation and startup
 
-Use Python 3.11 or newer and Poetry 2 or newer. From the repository directory, install the dependencies:
+Use Python 3.11 or newer and Poetry 2 or newer; the local setup was tested with Python 3.13. Keep this repository and `machine-interfaces`, `response-matrix` in the same parent directory. From this repository, run:
 
 ```bash
 poetry install
+poetry run python BBA_GUI.py
 ```
 
-Shared code is provided by `machine-interfaces`, `response-matrix` repositories.
+Other entry files, using the same interpreter:
+
+- `BBA_QM_GUI.py`
