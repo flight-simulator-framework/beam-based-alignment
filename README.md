@@ -23,12 +23,16 @@ The plots show how the measured orbit and enabled correction objectives change o
 
 ## Installation and startup
 
-Use Python 3.11 or newer and Poetry 2 or newer; the local setup was tested with Python 3.13. Keep this repository and `machine-interfaces`, `response-matrix` in the same parent directory. From this repository, run:
+Use Python 3.11 or newer and Poetry 2 or newer.
 
 ```bash
+git clone https://gitlab.cern.ch/flight-simulator/beam-based-alignment.git
+cd beam-based-alignment
 poetry install
 poetry run python BBA_GUI.py
 ```
+
+Poetry downloads and installs the required Python dependencies automatically.
 
 Other entry files, using the same interpreter:
 

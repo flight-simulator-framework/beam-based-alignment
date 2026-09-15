@@ -220,17 +220,19 @@ optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
-machine-interfaces = ">=0.1.0,<0.2.0"
+machine-interfaces = {git = "https://gitlab.cern.ch/flight-simulator/machine-interfaces.git", rev = "54490bf072d3db26d98383eeeced1a759e1d4bbb"}
 matplotlib = ">=3.10.8,<4"
 numpy = ">=2.4.2,<3"
 PyQt6 = ">=6.10.2,<7"
 
 [package.source]
-type = "directory"
-url = "../response-matrix"
+type = "git"
+url = "https://gitlab.cern.ch/flight-simulator/response-matrix.git"
+reference = "61de1dfd2719999c01ed613726483132ff9654ca"
+resolved_reference = "61de1dfd2719999c01ed613726483132ff9654ca"
 
 [[package]]
 name = "fonttools"
@@ -552,7 +554,7 @@ optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
 cpymad = {version = ">=1,<2", optional = true}
@@ -573,8 +575,10 @@ rftrack = ["rf-track (>=2.6.2,<3)"]
 tao = ["pytao (>=0.5,<2)"]
 
 [package.source]
-type = "directory"
-url = "../machine-interfaces"
+type = "git"
+url = "https://gitlab.cern.ch/flight-simulator/machine-interfaces.git"
+reference = "54490bf072d3db26d98383eeeced1a759e1d4bbb"
+resolved_reference = "54490bf072d3db26d98383eeeced1a759e1d4bbb"
 
 [[package]]
 name = "markdown-it-py"
@@ -1828,4 +1832,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "beef6c88f08348c2fd4176fb2f007f67dcdf53e5e6df248194c013929d10ac6c"
+content-hash = "55a047e352ccb8a94341b691aa5fccfcd7ec0836b65230bd1a2b42b0ea266dcd"
