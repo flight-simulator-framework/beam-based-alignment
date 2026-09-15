@@ -12,8 +12,9 @@ matplotlib.use("QtAgg")
 import numpy as np
 
 class TestOrbits(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, intensity_label="WFS"):
         super().__init__(parent)
+        self.intensity_label = intensity_label
         self.setWindowTitle("Test Orbits")
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.setMinimumSize(700, 520)
@@ -59,12 +60,12 @@ class TestOrbits(QDialog):
         if O1x is not None:
             self.axes_x.errorbar(xpos, O1x-O0x, yerr=dfs_err_x, fmt="o-", capsize=3, label="DFS (O1-O0)")
         if O2x is not None:
-            self.axes_x.plot(xpos, (O2x-O0x),label="WFS (O2-O0)")
+            self.axes_x.plot(xpos, (O2x-O0x),label=f"{self.intensity_label} (O2-O0)")
 
         if O1y is not None:
             self.axes_y.errorbar(xpos, O1y-O0y, yerr=dfs_err_y, fmt="o-", capsize=3, label="DFS (O1-O0)")
         if O2y is not None:
-            self.axes_y.plot(xpos, (O2y-O0y),label="WFS (O2-O0)")
+            self.axes_y.plot(xpos, (O2y-O0y),label=f"{self.intensity_label} (O2-O0)")
 
         self.axes_x.set_xlabel("BPM index") #change to names
         self.axes_x.set_ylabel("Horizontal orbit difference [mm]")

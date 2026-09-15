@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 from beam_based_alignment.BBA_helpers.BPM_weights import BPM_weights
 from machine_interfaces.Backend.ActuatorMode import ActuatorMode
 from traceback import print_exception
-from machine_interfaces.Interfaces.interface_setup import INTERFACE_SETUP
+from machine_interfaces.Interfaces.interface_setup import INTERFACE_SETUP, get_intensity_labels
 from machine_interfaces.Knobs.jitter_subtraction import (apply_jitter_subtraction, explain_reference_selection, fit_jitter_model)
 
 
@@ -87,6 +87,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         super().__init__()
         self.cwd = os.getcwd()
         self.interface = interface
+        self._intensity_labels = get_intensity_labels(interface)
         self.dir_name = dir_name
         self.nominal_state = nominal_state
         self.start_state = start_state if start_state is not None else interface.get_state()
@@ -98,6 +99,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.reset_reference_orbit = False
         ui_path = os.path.join(os.path.dirname(beam_based_alignment.__file__), "UI files/BBA_GUI.ui")
         uic.loadUi(ui_path, self)
+        self._setup_intensity_labels()
         self._clock_zone_name = self._get_clock_zone()
         self._setup_machine_clock()
         self._load_logo()
@@ -135,7 +137,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.pushButton_10.clicked.connect(self._pick_and_load_wake_data)
         self.clear_graphs_button.clicked.connect(self._clear_graphs)
         self.restore_initial_settings.clicked.connect(self._restore_initial_settings)
-        self.modes = ['Orbit', 'Dispersion', 'Wakefield']
         self._running = False
         self.appropriate_settings_energy = None
         self.appropriate_settings_intensity = None
@@ -282,7 +283,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             titles = {
                 "traj": "Trajectory (Residual to response matrix reference)",
                 "disp": "Dispersion (Residual to response matrix reference)",
-                "wake": "Wakefield (Residual to response matrix reference)",
+                "wake": self._intensity_labels["plot_title"],
             }
             popup = PlotPopup(titles.get(plot_type, "Correction plot"), parent=self)
             setattr(self, popup_attr, popup)
@@ -321,7 +322,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             error_y = self._hist_wake_y_err
             error_all = self._hist_wake_err
             ylabel = f"Residual norm [{self.bpm_unit}]"
-            title = "Wakefield (Residual to response matrix reference)"
+            title = self._intensity_labels["plot_title"]
 
         ax = popup.ax
         ax.clear()
@@ -373,6 +374,18 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         corrs_unit = units_settings.get("corrector_strength", "T*mm")
 
         return units_settings, sysid_kick, bpm_unit, corrs_unit
+
+    def _setup_intensity_labels(self):
+        labels = self._intensity_labels
+        self.groupBox_7.setTitle(labels["correction"])
+        self.groupBox_4.setTitle(labels["plot_title"])
+        self.mode_wakefield.setText(labels["quantity"])
+        self.label_3.setText(labels["weight"])
+        self.label_3.setWordWrap(True)
+        self.wakefield_weight_tooltip.setToolTip(labels["weight_tooltip"])
+        if "jitter_tooltip" in labels:
+            self.subtract_jitter_checkbox.setToolTip(labels["jitter_tooltip"])
+            self.jitter_subtraction_tooltip.setToolTip(labels["jitter_tooltip"])
 
     def _setup_beam_change_controls(self):
         beam_change = (self._get_interface_initial_settings() or {}).get("beam_change", {})
@@ -465,7 +478,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         except Exception:
             self.log(f"The machine wasn't restored to its nominal state.")
             QMessageBox.critical(self, "Restore error",
-                                 f"Could not confirm the machine returned to its nominal energy/intensity.")
+                                 self._intensity_labels["restore_error"])
         if self.interface.restore_correctors_state(self.restore_state) is False:
             self.log("Warning: not every corrector was confirmed back at its saved current.")
             QMessageBox.warning(
@@ -507,7 +520,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         bpm_name = bpm.data(Qt.ItemDataRole.UserRole) or (bpm.text() or "")
         if not bpm_name:
             bpm_name = (bpm.text() or "").split("    [", 1)[0]
-        bpm_window = BPM_weights(bpm_name=bpm_name, parent=self)
+        bpm_window = BPM_weights(bpm_name=bpm_name, parent=self, intensity_label=self._intensity_labels["short"])
         if bpm_name in self.bpm_weights:
             w_orb, w_dfs, w_wfs = self.bpm_weights[bpm_name]
             bpm_window.set_values(w_orb, w_dfs, w_wfs)
@@ -1041,8 +1054,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
                 # wfs
                 if w3 > 0:
-                    print("Measuring wakefield")
-                    self.log("Measuring wakefield")
+                    print(self._intensity_labels["measuring"])
+                    self.log(self._intensity_labels["measuring"])
                     self.interface.change_intensity()
                     state2 = self.interface.get_state()
                     state2 = self._apply_jitter_subtraction_to_state(state2)
@@ -1434,7 +1447,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _show_test_orbits(self):
         if self.test_orbits is None:
-            self.test_orbits = TestOrbits(self)
+            self.test_orbits = TestOrbits(self, intensity_label=self._intensity_labels["short"])
         if not hasattr(self, "test_orbits_data") or self.test_orbits_data is None:
             QMessageBox.information(self, "No test orbits available", "No test orbits available.")
         else:
@@ -1521,29 +1534,23 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         orbit_dir = self.trajectory_response_3.text()
         dispersion_dir = self.dfs_response_3.text()
         wakefield_dir = self.wfs_response_3.text()
-        selected_mode = None
-        for rb in self.radio_buttons:
-            if rb.isChecked():
-                selected_mode = rb.text()
-                break
-        if selected_mode is None:
-            selected_mode = self.modes[0]
+        selected_mode = next((index for index, button in enumerate(self.radio_buttons) if button.isChecked()), 0)
 
-        if selected_mode == self.modes[0]:
+        if selected_mode == 0:
             mode = "orbit"
             args = ["--dir1", orbit_dir, "--compute"]
 
-        elif selected_mode == self.modes[1]:
+        elif selected_mode == 1:
             mode = "dispersion"
             if not dispersion_dir:
                 QMessageBox.warning(self, "Warning", "No dispersion directory selected")
                 return
             args = ["--dir1", dispersion_dir, "--dir2", orbit_dir, "--diff", "--compute"]
 
-        elif selected_mode == self.modes[2]:
+        elif selected_mode == 2:
             mode = "wakefield"
             if not wakefield_dir:
-                QMessageBox.warning(self, "Warning", "No wakefield directory selected")
+                QMessageBox.warning(self, "Warning", f"No {self._intensity_labels['directory']} directory selected")
                 return
             args = ["--dir1", wakefield_dir, "--dir2", orbit_dir, "--diff", "--compute"]
 

@@ -102,7 +102,7 @@ class MainWindow(QM_mode_helpers, CorrectorBBAWindow):
             title="QM - distance from initial trajectory",
         )
         self._plot_disabled_panel(self.disp_ax, self.disp_canvas, "DFS not used in QM mode")
-        self._plot_disabled_panel(self.wake_ax, self.wake_canvas, "WFS not used in QM mode")
+        self._plot_disabled_panel(self.wake_ax, self.wake_canvas, f"{self._intensity_labels['short']} not used in QM mode")
 
     @staticmethod
     def _plot_disabled_panel(ax, canvas, title):

@@ -13,9 +13,11 @@ import matplotlib
 matplotlib.use("QtAgg")
 
 class BPM_weights(QDialog):
-    def __init__(self, bpm_name, parent=None):
+    def __init__(self, bpm_name, parent=None, intensity_label=None):
         super().__init__(parent)
         uic.loadUi(os.path.join(os.path.dirname(beam_based_alignment.__file__), "UI files", "BPM_weights.ui"), self)
+        if intensity_label is not None:
+            self.label_wfs.setText(intensity_label)
         self.setWindowTitle(f"BPM weights - {bpm_name}")
         self.button_apply.clicked.connect(self.accept)
         self.button_cancel.clicked.connect(self.reject)

@@ -75,7 +75,7 @@ class QM_mode_helpers:
 
         if is_qm:
             self.groupBox_6.setTitle("DFS not used in QM mode")
-            self.groupBox_7.setTitle("WFS not used in QM mode")
+            self.groupBox_7.setTitle(f"{self._intensity_labels['short']} not used in QM mode")
             self.label.setText("Trajectory hold weight")
             self.lineEdit.setText("0.0")
             self.lineEdit_2.setText("1.0")
@@ -94,10 +94,10 @@ class QM_mode_helpers:
             self.max_vertical_current_spinbox.setValue(1000.0)
         else:
             self.groupBox_6.setTitle("Dispersion-Free Steering")
-            self.groupBox_7.setTitle("Wakefield-Free Steering")
+            self.groupBox_7.setTitle(self._intensity_labels["correction"])
             self.label.setText("Orbit weight")
             self.label_2.setText("Dispersion weight")
-            self.label_3.setText("Wakefield weight")
+            self.label_3.setText(self._intensity_labels["weight"])
             self.lineEdit.setText("1.0")
             self.lineEdit_2.setText("10.0")
             self.lineEdit_3.setText("10.0")
