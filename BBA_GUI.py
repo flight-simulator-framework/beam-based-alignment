@@ -6,7 +6,7 @@ import numpy as np
 
 try:
     from PyQt6 import uic
-    from PyQt6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer
+    from PyQt6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QEvent
     from PyQt6.QtWidgets import (QGroupBox, QApplication, QRadioButton, QSizePolicy, QMainWindow, QFileDialog,
                                  QListWidget, QListWidgetItem, QMessageBox, QProgressDialog, QVBoxLayout, QPushButton,
                                  QDialog, QLabel, QStyledItemDelegate, QWidget, QHBoxLayout)
@@ -15,7 +15,7 @@ try:
     pyqt_version = 6
 except ImportError:
     from PyQt5 import uic
-    from PyQt5.QtCore import Qt, QProcess, QProcessEnvironment, QTimer
+    from PyQt5.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QEvent
     from PyQt5.QtWidgets import (QGroupBox, QApplication, QRadioButton, QSizePolicy, QMainWindow, QFileDialog,
                                  QListWidget, QListWidgetItem, QMessageBox, QProgressDialog, QVBoxLayout, QPushButton,
                                  QDialog, QLabel, QStyledItemDelegate, QWidget, QHBoxLayout)
@@ -102,6 +102,9 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self._setup_machine_clock()
         self._load_logo()
         self.bpms_list.setItemDelegate(BpmWeightsDelegate(self.bpms_list))
+        self._bpm_selection_before_click = []
+        self._bpm_weights_double_click = False
+        self.bpms_list.viewport().installEventFilter(self)
         self._data_dirs = {"traj": None, "dfs": None, "wfs": None}
         self._hist_orbit, self._hist_disp, self._hist_wake = [], [], []
         self._hist_orbit_x, self._hist_orbit_y = [], []
@@ -200,7 +203,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.compute_response_matrix_button.clicked.connect(self._display_response_matrix)
         self.pushButton_reset_ref_orbit.clicked.connect(self._reset_reference_orbit)
         self.reset_ref_orb = False
-        self.bpms_list.itemDoubleClicked.connect(self._edit_bpm_weights)
         correctors = self.interface.get_correctors()
         correctors_list = correctors['names']
         self.hcorrector_names = set(map(str, self.interface.get_hcorrectors_names() or []))  # takes correctors names, if None, then use an empty list, makes everything a string and saves as a set without the duplicates
@@ -481,6 +483,25 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _is_v_corrector(self, s):
         return str(s) in self.vcorrector_names
+
+    def eventFilter(self, watched, event):
+        if watched is self.bpms_list.viewport():
+            if event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                self._bpm_weights_double_click = False
+                self._bpm_selection_before_click = self.bpms_list.selectedItems()
+            elif event.type() == QEvent.Type.MouseButtonDblClick and event.button() == Qt.MouseButton.LeftButton:
+                bpm = self.bpms_list.itemAt(event.pos())
+                if bpm is not None:
+                    self._bpm_weights_double_click = True
+                    for i in range(self.bpms_list.count()):
+                        item = self.bpms_list.item(i)
+                        item.setSelected(item in self._bpm_selection_before_click)
+                    self._edit_bpm_weights(bpm)
+                    return True
+            elif event.type() == QEvent.Type.MouseButtonRelease and self._bpm_weights_double_click:
+                self._bpm_weights_double_click = False
+                return True
+        return super().eventFilter(watched, event)
 
     def _edit_bpm_weights(self, bpm):
         bpm_name = bpm.data(Qt.ItemDataRole.UserRole) or (bpm.text() or "")
@@ -979,6 +1000,15 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     B0y = O0y.copy()
                     self.reset_ref_orb = False
                     self.log("Reference orbit reset to current orbit")
+
+                if w1 > 0 and (O0x.shape != B0x.shape or O0y.shape != B0y.shape):
+                    self.setWindowTitle("BBA GUI")
+                    QMessageBox.warning(
+                        self, "BPM selection changed",
+                        "The number of selected BPMs differs from the saved reference orbit.\n"
+                        "Restore the previous BPM selection or click Reset reference orbit, then start again.",
+                    )
+                    return
 
                 # dfs
                 if w2 > 0:

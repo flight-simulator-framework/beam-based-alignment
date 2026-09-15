@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1512</width>
-    <height>930</height>
+    <height>1003</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -183,9 +183,9 @@ QGroupBox#restore_machine_status_group::title {
                </item>
               </layout>
              </item>
-           </layout>
-          </widget>
-         </item>
+            </layout>
+           </widget>
+          </item>
           <item>
            <widget class="QGroupBox" name="beam_change_group">
             <property name="sizePolicy">
@@ -242,34 +242,55 @@ QToolButton#energy_change_tooltip:hover, QToolButton#intensity_change_tooltip:ho
                <item>
                 <widget class="QLabel" name="energy_change_label">
                  <property name="minimumSize">
-                  <size><width>130</width><height>0</height></size>
+                  <size>
+                   <width>130</width>
+                   <height>0</height>
+                  </size>
                  </property>
-                 <property name="text"><string>Change energy</string></property>
+                 <property name="text">
+                  <string>Change energy</string>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLabel" name="energy_nominal_label">
-                 <property name="text"><string>Nominal</string></property>
+                 <property name="text">
+                  <string>Nominal</string>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLineEdit" name="energy_nominal_input">
-                 <property name="maximumSize"><size><width>110</width><height>16777215</height></size></property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>110</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLabel" name="energy_test_label">
-                 <property name="text"><string>Test</string></property>
+                 <property name="text">
+                  <string>Test</string>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLineEdit" name="energy_test_input">
-                 <property name="maximumSize"><size><width>110</width><height>16777215</height></size></property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>110</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QToolButton" name="energy_change_tooltip">
-                 <property name="text"><string>?</string></property>
+                 <property name="text">
+                  <string>?</string>
+                 </property>
                 </widget>
                </item>
               </layout>
@@ -279,34 +300,55 @@ QToolButton#energy_change_tooltip:hover, QToolButton#intensity_change_tooltip:ho
                <item>
                 <widget class="QLabel" name="intensity_change_label">
                  <property name="minimumSize">
-                  <size><width>130</width><height>0</height></size>
+                  <size>
+                   <width>130</width>
+                   <height>0</height>
+                  </size>
                  </property>
-                 <property name="text"><string>Change intensity</string></property>
+                 <property name="text">
+                  <string>Change intensity</string>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLabel" name="intensity_nominal_label">
-                 <property name="text"><string>Nominal</string></property>
+                 <property name="text">
+                  <string>Nominal</string>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLineEdit" name="intensity_nominal_input">
-                 <property name="maximumSize"><size><width>110</width><height>16777215</height></size></property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>110</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLabel" name="intensity_test_label">
-                 <property name="text"><string>Test</string></property>
+                 <property name="text">
+                  <string>Test</string>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QLineEdit" name="intensity_test_input">
-                 <property name="maximumSize"><size><width>110</width><height>16777215</height></size></property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>110</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
                 </widget>
                </item>
                <item>
                 <widget class="QToolButton" name="intensity_change_tooltip">
-                 <property name="text"><string>?</string></property>
+                 <property name="text">
+                  <string>?</string>
+                 </property>
                 </widget>
                </item>
               </layout>
@@ -1569,7 +1611,7 @@ QToolButton#beta_tooltip:hover {
                     </layout>
                    </item>
                    <item>
-                   <layout class="QHBoxLayout" name="transmission_layout">
+                    <layout class="QHBoxLayout" name="transmission_layout">
                      <item>
                       <widget class="QLabel" name="label_transmission">
                        <property name="text">
@@ -1605,52 +1647,52 @@ QToolButton#transmission_tooltip:hover {
                        </property>
                       </widget>
                      </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="nsamples_layout">
-                    <item>
-                    <widget class="QLabel" name="nsamples_label">
-                      <property name="minimumSize">
-                       <size>
-                        <width>130</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>130</width>
-                        <height>16777215</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>BPM samples</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                    <widget class="QLineEdit" name="nsamples_input">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>500</width>
-                        <height>16777215</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="nsamples_tooltip">
-                     <property name="toolTip">
-                       <string>Number of BPM samples acquired for each measurement. Larger values reduce random noise but increase measurement time.</string>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">QToolButton#nsamples_tooltip {
+                    </layout>
+                   </item>
+                   <item>
+                    <layout class="QHBoxLayout" name="nsamples_layout">
+                     <item>
+                      <widget class="QLabel" name="nsamples_label">
+                       <property name="minimumSize">
+                        <size>
+                         <width>130</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>130</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="text">
+                        <string>BPM samples</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QLineEdit" name="nsamples_input">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>500</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="nsamples_tooltip">
+                       <property name="toolTip">
+                        <string>Number of BPM samples acquired for each measurement. Larger values reduce random noise but increase measurement time.</string>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">QToolButton#nsamples_tooltip {
     border: 1px solid #888;
     border-radius: 10px;
     min-width: 20px;
@@ -1663,16 +1705,16 @@ QToolButton#transmission_tooltip:hover {
 QToolButton#nsamples_tooltip:hover {
     background-color: #e6e6e6;
 }</string>
-                      </property>
-                      <property name="text">
-                       <string>?</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item>
-                   <layout class="QHBoxLayout" name="jitter_subtraction_layout">
+                       </property>
+                       <property name="text">
+                        <string>?</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item>
+                    <layout class="QHBoxLayout" name="jitter_subtraction_layout">
                      <item>
                       <widget class="QCheckBox" name="subtract_jitter_checkbox">
                        <property name="toolTip">
@@ -1915,7 +1957,7 @@ QGroupBox#current_groupbox_right::title {
 }</string>
                      </property>
                      <property name="title">
-                      <string>Max strength (gauss*m)</string>
+                      <string>Max strength (A)</string>
                      </property>
                      <layout class="QVBoxLayout" name="current_groupbox_layout">
                       <property name="spacing">
@@ -2054,9 +2096,9 @@ QToolButton#max_strength_tooltip:hover {
                      <number>0</number>
                     </property>
                    </widget>
-                 </item>
-                 <item>
-                  <spacer name="logo_right_spacer">
+                  </item>
+                  <item>
+                   <spacer name="logo_right_spacer">
                     <property name="orientation">
                      <enum>Qt::Horizontal</enum>
                     </property>
@@ -2066,28 +2108,28 @@ QToolButton#max_strength_tooltip:hover {
                       <height>20</height>
                      </size>
                     </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <widget class="QLabel" name="machine_clock_label">
-                 <property name="styleSheet">
-                  <string notr="true">QLabel#machine_clock_label {
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QLabel" name="machine_clock_label">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel#machine_clock_label {
     font-weight: 600;
     padding: 4px 8px;
 }</string>
-                 </property>
-                 <property name="text">
-                  <string>Time: --</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="controls_vertical_spacer">
+                  </property>
+                  <property name="text">
+                   <string>Time: --</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="controls_vertical_spacer">
                   <property name="orientation">
                    <enum>Qt::Vertical</enum>
                   </property>
@@ -2114,7 +2156,7 @@ QToolButton#max_strength_tooltip:hover {
       </item>
      </layout>
     </item>
-  </layout>
+   </layout>
   </widget>
  </widget>
  <resources/>
