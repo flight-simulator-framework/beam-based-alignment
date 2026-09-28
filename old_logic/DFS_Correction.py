@@ -1,7 +1,7 @@
 import sys
 
 # from InterfaceATF2_Linac import InterfaceATF2_Linac
-from machine_interfaces.Interfaces.ATF2.InterfaceATF2_Ext_RFTrack import InterfaceATF2_Ext_RFTrack
+from machine_interfaces_atf2.InterfaceATF2_Ext_RFTrack import InterfaceATF2_Ext_RFTrack
 from response_matrix.Response import Response
 from machine_interfaces.Backend.State import State
 
