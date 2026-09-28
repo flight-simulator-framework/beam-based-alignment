@@ -28,6 +28,7 @@ Use Python 3.11 or newer and Poetry 2 or newer.
 ```bash
 git clone https://gitlab.cern.ch/flight-simulator/beam-based-alignment.git
 cd beam-based-alignment
+poetry update rf-track --lock
 poetry install
 poetry run python BBA_GUI.py
 ```
