@@ -678,9 +678,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _dataset_beam_signature(self, pairs):
         signature = ResponseMatrix_DFS_WFS._dataset_beam_signature(pairs)
-        if type(self.interface).__module__ == "machine_interfaces_esrf.InterfaceESRF_TL2":
-            return {key: value for key, value in signature.items() if not key.startswith("quadrupoles.")}
-        return signature
+        return signature if any(not key.startswith("quadrupoles.") for key in signature) else {}
 
     def _force_triangular(self) -> bool:
         return bool(self.triangular_checkbox.isChecked())
