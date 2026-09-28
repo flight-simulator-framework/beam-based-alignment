@@ -679,20 +679,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
     def _force_triangular(self) -> bool:
         return bool(self.triangular_checkbox.isChecked())
 
-    def _with_progress(self, total, title):
-        prog = QProgressDialog(title, "Cancel", 0, total, self)
-        prog.setWindowModality(Qt.WindowModality.ApplicationModal)  # user cant interact with the main window
-        prog.setMinimumDuration(0)
-
-        def cb(i, n, text):
-            prog.setMaximum(n)
-            prog.setValue(i)
-            prog.setLabelText(text)
-            QApplication.processEvents()
-            return not prog.wasCanceled()
-
-        return prog, cb
-
     def _calc_error(self, x_meas, y_meas, ref_x, ref_y, disp_x=None, disp_y=None):
         x_val = np.asarray(x_meas, dtype=float)
         y_val = np.asarray(y_meas, dtype=float)
