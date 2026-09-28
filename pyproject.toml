@@ -29,7 +29,7 @@ facet2 = [
     "machine-interfaces-facet2>=0.2.0,<0.3",
 ]
 esrf = [
-    "machine-interfaces-esrf>=0.2.0,<0.3",
+    "machine-interfaces-esrf>=0.2.1,<0.3",
 ]
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
