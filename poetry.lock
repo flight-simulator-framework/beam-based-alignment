@@ -466,8 +466,9 @@ description = "Offline response matrix reconstruction from recorded machine snap
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
-files = []
-develop = true
+files = [
+    {file = "flight_response_matrix-0.2.0-py3-none-any.whl", hash = "sha256:adb20f9de665189c81249ab2b2cf44025b20480b25bb226f03b00bc75e1fe1c0"},
+]
 
 [package.dependencies]
 machine-interfaces = ">=0.2.0,<0.3"
@@ -477,8 +478,9 @@ pyqt5 = ">=5.15.11,<6.0.0"
 PyQt6 = ">=6.10.2,<7"
 
 [package.source]
-type = "directory"
-url = "../response-matrix"
+type = "legacy"
+url = "https://gitlab.cern.ch/api/v4/groups/363527/-/packages/pypi/simple/"
+reference = "flight-simulator"
 
 [[package]]
 name = "fonttools"
@@ -882,8 +884,9 @@ description = "Shared machine interface API, state storage and interface selecti
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
-files = []
-develop = true
+files = [
+    {file = "machine_interfaces-0.2.0-py3-none-any.whl", hash = "sha256:0ec3dea3f9b5a704cc9b31d9f39fdc8771afd078df14183938ad4b86dcb5048a"},
+]
 
 [package.dependencies]
 matplotlib = ">=3.10.8,<4"
@@ -896,8 +899,9 @@ analysis = ["h5py (>=3,<4)"]
 camera-reference = ["pillow (>=12.1.1,<13)"]
 
 [package.source]
-type = "directory"
-url = "../machine-interfaces"
+type = "legacy"
+url = "https://gitlab.cern.ch/api/v4/groups/363527/-/packages/pypi/simple/"
+reference = "flight-simulator"
 
 [[package]]
 name = "machine-interfaces-atf2"
@@ -907,8 +911,9 @@ optional = true
 python-versions = ">=3.11"
 groups = ["main"]
 markers = "extra == \"atf2\""
-files = []
-develop = true
+files = [
+    {file = "machine_interfaces_atf2-0.2.0-py3-none-any.whl", hash = "sha256:e63e3ce6e12d91e35adf028a4e793b325259de5a9c6c19fdfa6210d924101605"},
+]
 
 [package.dependencies]
 cpymad = ">=1,<2"
@@ -917,8 +922,9 @@ pyepics = ">=1.0,<4"
 rf-track = ">=2.6.2,<3"
 
 [package.source]
-type = "directory"
-url = "../machine-interfaces/backends/atf2"
+type = "legacy"
+url = "https://gitlab.cern.ch/api/v4/groups/363527/-/packages/pypi/simple/"
+reference = "flight-simulator"
 
 [[package]]
 name = "machine-interfaces-clear"
@@ -928,8 +934,9 @@ optional = true
 python-versions = ">=3.11"
 groups = ["main"]
 markers = "extra == \"clear\""
-files = []
-develop = true
+files = [
+    {file = "machine_interfaces_clear-0.2.0-py3-none-any.whl", hash = "sha256:b3b808c8a9c71c63f770a8fe1052421aa64950d3b88eadb8e1ffe34c6df7a2c3"},
+]
 
 [package.dependencies]
 cmmnbuild-dep-manager = {version = ">=2.13,<3", markers = "python_version >= \"3.11\" and python_version < \"4\""}
@@ -941,8 +948,9 @@ pyrbac = {version = ">=1.0,<2", markers = "python_version >= \"3.11\" and python
 rf-track = ">=2.6.2,<3"
 
 [package.source]
-type = "directory"
-url = "../machine-interfaces/backends/clear"
+type = "legacy"
+url = "https://gitlab.cern.ch/api/v4/groups/363527/-/packages/pypi/simple/"
+reference = "flight-simulator"
 
 [[package]]
 name = "machine-interfaces-esrf"
@@ -952,8 +960,9 @@ optional = true
 python-versions = ">=3.11"
 groups = ["main"]
 markers = "extra == \"esrf\""
-files = []
-develop = true
+files = [
+    {file = "machine_interfaces_esrf-0.2.0-py3-none-any.whl", hash = "sha256:c9720ce2aa74f09c2850741df487a1d2be88af89905d1472c5fa4f6a3c996b24"},
+]
 
 [package.dependencies]
 machine-interfaces = ">=0.2.0,<0.3"
@@ -961,8 +970,9 @@ pandas = ">=3.0.6,<4"
 pytango = ">=10.3.1,<11"
 
 [package.source]
-type = "directory"
-url = "../machine-interfaces/backends/esrf"
+type = "legacy"
+url = "https://gitlab.cern.ch/api/v4/groups/363527/-/packages/pypi/simple/"
+reference = "flight-simulator"
 
 [[package]]
 name = "machine-interfaces-facet2"
@@ -972,8 +982,9 @@ optional = true
 python-versions = ">=3.11"
 groups = ["main"]
 markers = "extra == \"facet2\""
-files = []
-develop = true
+files = [
+    {file = "machine_interfaces_facet2-0.2.0-py3-none-any.whl", hash = "sha256:c46a18debc64c47b75849b9da922ecf1b22f35ed95c0a0c51fc17ece4ccb638c"},
+]
 
 [package.dependencies]
 machine-interfaces = ">=0.2.0,<0.3"
@@ -982,8 +993,9 @@ pytao = ">=0.5,<2"
 rf-track = ">=2.6.2,<3"
 
 [package.source]
-type = "directory"
-url = "../machine-interfaces/backends/facet2"
+type = "legacy"
+url = "https://gitlab.cern.ch/api/v4/groups/363527/-/packages/pypi/simple/"
+reference = "flight-simulator"
 
 [[package]]
 name = "markdown-it-py"
@@ -2652,4 +2664,4 @@ facet2 = ["machine-interfaces-facet2"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "61fa847d3f7bf87cb4b650cc8de511549bd8788734ecf3938e83265371daef28"
+content-hash = "a03f85b103542f195ca94c37328d0de71cd13de8171a11cf8c3b01655bc52218"
