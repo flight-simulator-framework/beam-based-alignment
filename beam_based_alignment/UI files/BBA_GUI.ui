@@ -586,7 +586,7 @@ QGroupBox#groupBox_7::title {
            </widget>
           </item>
           <item>
-           <widget class="QGroupBox" name="groupBox_9">
+           <widget class="QGroupBox" name="beam_change_method_group">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -594,27 +594,27 @@ QGroupBox#groupBox_7::title {
              </sizepolicy>
             </property>
             <property name="styleSheet">
-             <string notr="true">QGroupBox#groupBox_9 {
+             <string notr="true">QGroupBox#beam_change_method_group {
     background-color: rgb(245, 245, 245);
     border: 1px solid rgb(210, 210, 210);
     border-radius: 6px;
     margin-top: 8px;
     padding-top: 6px;
 }
-QGroupBox#groupBox_9::title {
+QGroupBox#beam_change_method_group::title {
     subcontrol-origin: margin;
     left: 10px;
     padding: 0 4px 0 4px;
 }</string>
             </property>
             <property name="title">
-             <string>Computation</string>
+             <string>Beam change method</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_2">
+            <layout class="QVBoxLayout" name="beam_change_method_layout">
              <item>
-              <layout class="QHBoxLayout" name="actuator_mode_layout">
+              <layout class="QHBoxLayout" name="beam_change_method_row">
                <item>
-                <spacer name="actuator_mode_left_spacer">
+                <spacer name="beam_change_method_left_spacer">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
@@ -630,37 +630,27 @@ QGroupBox#groupBox_9::title {
                 </spacer>
                </item>
                <item>
-                <widget class="QLabel" name="actuator_mode_label">
-                 <property name="text">
-                  <string>Actuator type</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QComboBox" name="actuator_mode_combo">
+                <widget class="QComboBox" name="beam_change_method_combo">
                  <property name="minimumSize">
                   <size>
-                   <width>160</width>
+                   <width>200</width>
                    <height>0</height>
                   </size>
                  </property>
-                 <property name="toolTip">
-                  <string>&lt;html&gt;&lt;body&gt;&lt;p&gt;Select which devices are used as BBA actuators.&lt;/p&gt;&lt;p&gt;Correctors use steering magnets. Quadrupole movers mode uses quadrupole mover offsets, if supported by the selected interface.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                 </property>
                  <item>
                   <property name="text">
-                   <string>Correctors</string>
+                   <string>Default</string>
                   </property>
                  </item>
                  <item>
                   <property name="text">
-                   <string>Quadrupole movers</string>
+                   <string>Quadrupole scaling</string>
                   </property>
                  </item>
                 </widget>
                </item>
                <item>
-                <spacer name="actuator_mode_right_spacer">
+                <spacer name="beam_change_method_right_spacer">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>

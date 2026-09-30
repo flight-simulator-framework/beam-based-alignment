@@ -26,8 +26,6 @@ class MainWindow(QM_mode_helpers, CorrectorBBAWindow):
 
     def _configure_qm_window(self):
         self.setWindowTitle("BBA QM GUI")
-        self.actuator_mode_label.setVisible(False)
-        self.actuator_mode_combo.setVisible(False)
 
         self.correctors_list.clear()
         self.correctors_list.addItems(self.qm_corrs)

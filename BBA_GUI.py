@@ -187,9 +187,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.machine_clock_label.setText(f"{now:%Y-%m-%d %H:%M:%S} {now.tzname()}")
 
     def _setup_corrector_controls(self):
-        self.groupBox_9.setVisible(False)
-        self.actuator_mode_label.setVisible(False)
-        self.actuator_mode_combo.setVisible(False)
         self.pushButton_11.clicked.connect(self.load_session_settings)
         self.setWindowTitle("BBA GUI")
         self.lineEdit.setText("1")
