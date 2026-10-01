@@ -99,6 +99,11 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.reset_reference_orbit = False
         ui_path = os.path.join(os.path.dirname(beam_based_alignment.__file__), "UI files/BBA_GUI.ui")
         uic.loadUi(ui_path, self)
+        self._default_beam_tooltips = {
+            name: getattr(self, name).toolTip()
+            for name in ("subtract_jitter_checkbox", "jitter_subtraction_tooltip", "wfs_response_tooltip", "measure_wakefields_tooltip")
+        }
+        self._default_measure_wakefields_text = self.measure_wakefields_button.text()
         self._setup_intensity_labels()
         self._clock_zone_name = self._get_clock_zone()
         self._setup_machine_clock()
@@ -321,6 +326,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             ylabel = f"Residual norm [{self.bpm_unit}]"
             title = self._intensity_labels["plot_title"]
 
+        popup.setWindowTitle(title)
         ax = popup.ax
         ax.clear()
 
@@ -380,17 +386,52 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.label_3.setText(labels["weight"])
         self.label_3.setWordWrap(True)
         self.wakefield_weight_tooltip.setToolTip(labels["weight_tooltip"])
-        if "jitter_tooltip" in labels:
-            self.subtract_jitter_checkbox.setToolTip(labels["jitter_tooltip"])
-            self.jitter_subtraction_tooltip.setToolTip(labels["jitter_tooltip"])
+        for name in ("subtract_jitter_checkbox", "jitter_subtraction_tooltip"):
+            getattr(self, name).setToolTip(labels.get("jitter_tooltip", self._default_beam_tooltips[name]))
+        self.wfs_response_tooltip.setToolTip(labels.get("response_tooltip", self._default_beam_tooltips["wfs_response_tooltip"]))
+        self.measure_wakefields_button.setText(labels.get("measurement_button", self._default_measure_wakefields_text))
+        self.measure_wakefields_tooltip.setToolTip(labels.get("measurement_tooltip", self._default_beam_tooltips["measure_wakefields_tooltip"]))
 
     def _setup_beam_change_controls(self):
         beam_change = (self._get_interface_initial_settings() or {}).get("beam_change", {})
-        change_energy_methods = beam_change.get("methods", [])
+        self._beam_change_texts = {}
+        self._beam_change_fields = []
         self.beam_change_method_combo.clear()
-        self.beam_change_method_combo.addItems(change_energy_methods)
+        self.beam_change_method_combo.addItems(beam_change.get("methods", []))
+        self._beam_change_method = self.beam_change_method_combo.currentText()
+        self.beam_change_method_combo.currentTextChanged.connect(self._change_energy_method)
+        self._refresh_beam_change_controls()
+
+    def _beam_method_profile(self):
+        beam_change = (self._get_interface_initial_settings() or {}).get("beam_change", {})
+        return beam_change.get("method_settings", {}).get(self._beam_change_method, {})
+
+    def _change_energy_method(self, method):
+        if self._running:
+            self.beam_change_method_combo.blockSignals(True)
+            self.beam_change_method_combo.setCurrentText(self._beam_change_method)
+            self.beam_change_method_combo.blockSignals(False)
+            return
+        for widget, field in self._beam_change_fields:
+            self._beam_change_texts[field["attribute"]] = widget.text()
+        self._beam_change_method = method
+        self._refresh_beam_change_controls()
+        for key, widget in (("dfs", self.dfs_response_3), ("wfs", self.wfs_response_3)):
+            self._data_dirs[key] = None
+            widget.clear()
+        self.test_orbits_data = None
+        if self.test_orbits is not None:
+            self.test_orbits.close()
+            self.test_orbits = None
+        self._clear_graphs()
+
+    def _refresh_beam_change_controls(self):
+        beam_change = (self._get_interface_initial_settings() or {}).get("beam_change", {})
+        profile = self._beam_method_profile()
         self._beam_change_fields = []
         self.beam_change_group.setVisible(bool(beam_change))
+        self._intensity_labels = get_intensity_labels(self.interface, self._beam_change_method)
+        self._setup_intensity_labels()
 
         controls = {
             "energy": (
@@ -412,7 +453,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         }
         for kind, widgets in controls.items():
             title, nominal_label, nominal_input, test_label, test_input, tooltip = widgets
-            settings = beam_change.get(kind)
+            settings = profile.get(kind, beam_change.get(kind))
             title.setVisible(settings is not None)
             tooltip.setVisible(settings is not None)
             if settings is None:
@@ -433,12 +474,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     continue
                 label.setText(field["label"])
                 value = getattr(self.interface, field["attribute"], field.get("default", ""))
-                input_widget.setText("" if value is None else str(value))
+                input_widget.setText(self._beam_change_texts.get(field["attribute"], "" if value is None else str(value)))
                 input_widget.setPlaceholderText(field.get("placeholder", ""))
                 self._beam_change_fields.append((input_widget, field))
 
     def _apply_beam_change_controls(self):
-        self._beam_change_values = {}
+        self._beam_change_values = {"_method": self._beam_change_method}
         for input_widget, field in self._beam_change_fields:
             text = input_widget.text().strip()
             if not text and field.get("allow_empty", False):
@@ -458,6 +499,14 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         return True
 
     def _load_beam_change_values(self, values):
+        method = values.get("_method")
+        if method is None and "quadrupole_scaling_factor" in values:
+            method = "Changing RF phase and quadrupole scaling"
+        if method is not None:
+            index = self.beam_change_method_combo.findText(method)
+            if index < 0:
+                raise ValueError(f"Energy-change method is unavailable: {method}")
+            self.beam_change_method_combo.setCurrentIndex(index)
         for input_widget, field in self._beam_change_fields:
             attribute = field["attribute"]
             if attribute not in values:
@@ -466,6 +515,20 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             input_widget.setText("" if value is None else str(value))
         return self._apply_beam_change_controls()
 
+    def _beam_action(self, action):
+        method = self._beam_method_profile().get("actions", {}).get(action, action)
+        return getattr(self.interface, method)()
+
+    def _measure_changed_beam(self, kind):
+        try:
+            change = self._beam_action(f"change_{kind}")
+            state = self._apply_jitter_subtraction_to_state(self.interface.get_state())
+            if kind == "energy":
+                change = self._beam_method_profile().get("energy_offset", change)
+            return state, change
+        finally:
+            self._beam_action(f"reset_{kind}")
+
     def _restore_initial_settings(self):
         self.log("Restoring initial settings...")
         self._cancel = True
@@ -473,9 +536,9 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         w1, w2, w3, rcond, iters, gain, beta, transmission_threshold= self._read_params()
         try:
             if w2 > 0:
-                self.interface.reset_energy()
+                self._beam_action("reset_energy")
             if w3 > 0:
-                self.interface.reset_intensity()
+                self._beam_action("reset_intensity")
         except Exception:
             self.log(f"The machine wasn't restored to its nominal state.")
             QMessageBox.critical(self, "Restore error",
@@ -538,6 +601,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 return
             saved_state = self._save_machine_status()
             self._running = True
+            self.beam_change_group.setEnabled(False)
             self._step = True
             completed = False
             self._start_correction()
@@ -917,9 +981,9 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             if not adaptive_orbit_only:
                 self._adaptive_R = None
             if w2 > 0:
-                self.interface.reset_energy()
+                self._beam_action("reset_energy")
             if w3 > 0:
-                self.interface.reset_intensity()
+                self._beam_action("reset_intensity")
 
             samples_dir = os.path.join(self._session_dir, "BBA_states")
             os.makedirs(samples_dir, exist_ok=True)
@@ -1018,12 +1082,9 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 if w2 > 0:
                     print("Measuring dispersion")
                     self.log("Measuring dispersion")
-                    dP_P = self.interface.change_energy()
-                    state1 = self.interface.get_state()
-                    state1 = self._apply_jitter_subtraction_to_state(state1)
+                    state1, dP_P = self._measure_changed_beam("energy")
                     energy_file = os.path.join(samples_dir, f"ITER_{it:04d}_energy.pkl")
                     state1.save(filename=energy_file)
-                    self.interface.reset_energy()
                     O1 = state1.get_orbit(bpms)
                     O1x = np.asarray(O1['x'], dtype=float).reshape(-1, 1)
                     O1y = np.asarray(O1['y'], dtype=float).reshape(-1, 1)
@@ -1047,12 +1108,9 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 if w3 > 0:
                     print(self._intensity_labels["measuring"])
                     self.log(self._intensity_labels["measuring"])
-                    self.interface.change_intensity()
-                    state2 = self.interface.get_state()
-                    state2 = self._apply_jitter_subtraction_to_state(state2)
+                    state2, _ = self._measure_changed_beam("intensity")
                     intensity_file = os.path.join(samples_dir, f"ITER_{it:04d}_intensity.pkl")
                     state2.save(filename=intensity_file)
-                    self.interface.reset_intensity()
                     O2 = state2.get_orbit(bpms)
                     O2x = np.asarray(O2['x'], dtype=float).reshape(-1, 1)
                     O2y = np.asarray(O2['y'], dtype=float).reshape(-1, 1)
@@ -1430,6 +1488,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             print_exception(e)  # it shows even the line that generated that error
         finally:
             self._running = False
+            self.beam_change_group.setEnabled(True)
 
     def _stop_correction(self):
         self._cancel = True

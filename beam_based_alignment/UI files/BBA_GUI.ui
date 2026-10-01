@@ -553,7 +553,7 @@ QGroupBox::title {
                   <item>
                    <widget class="QToolButton" name="beam_change_method_tooltip">
                     <property name="toolTip">
-                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose the method used for the energy change: Quadrupole scaling or Default, which uses the method specific to the selected machine.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose the energy-change method. On CLEAR, the combined RF-phase and quadrupole-scaling mode uses RF-phase measurements for DFS and a separate quadrupole-scaling measurement for the third correction term.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                     </property>
                     <property name="text">
                      <string>?</string>
