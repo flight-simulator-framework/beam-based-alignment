@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1512</width>
-    <height>1003</height>
+    <height>968</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,6 +29,21 @@
          <number>0</number>
         </property>
         <widget class="QWidget" name="tab_response">
+         <property name="styleSheet">
+          <string notr="true">QToolButton {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton:hover {
+    background-color: #e6e6e6;
+}</string>
+         </property>
          <attribute name="title">
           <string>Response Matrices</string>
          </attribute>
@@ -103,6 +118,16 @@ QGroupBox#session_group_3::title {
                  </property>
                  <property name="text">
                   <string>...</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QToolButton" name="session_settings_tooltip">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If you do not load a previous session, all correction data, selected device lists, correction parameters, and other session data are saved in the specified directory.&lt;/p&gt;&lt;p&gt;Loading session settings restores the device selections and correction parameters and loads the same response matrix data.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                 <property name="text">
+                  <string>?</string>
                  </property>
                 </widget>
                </item>
@@ -181,177 +206,390 @@ QGroupBox#restore_machine_status_group::title {
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QToolButton" name="machine_status_tooltip">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Load a machine_status.pkl file to restore the machine state saved at that time, including quadrupole currents, corrector strengths, and other settings.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                 <property name="text">
+                  <string>?</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </item>
             </layout>
            </widget>
           </item>
           <item>
-           <widget class="QGroupBox" name="beam_change_group">
+           <widget class="QWidget" name="beam_change_group" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="styleSheet">
-             <string notr="true">QGroupBox#beam_change_group {
+            <layout class="QHBoxLayout" name="beam_change_layout" stretch="1,1">
+             <property name="spacing">
+              <number>12</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QGroupBox" name="intensity_change_group">
+               <property name="styleSheet">
+                <string notr="true">QGroupBox {
     background-color: rgb(245, 245, 245);
     border: 1px solid rgb(210, 210, 210);
     border-radius: 6px;
     margin-top: 4px;
     padding-top: 6px;
 }
-QGroupBox#beam_change_group::title {
+QGroupBox::title {
     subcontrol-origin: margin;
     left: 10px;
     padding: 0 4px 0 4px;
-}
-QToolButton#energy_change_tooltip, QToolButton#intensity_change_tooltip {
-    border: 1px solid #888;
-    border-radius: 10px;
-    min-width: 20px;
-    max-width: 20px;
-    min-height: 20px;
-    max-height: 20px;
-    padding: 0px;
-    font-weight: bold;
-}
-QToolButton#energy_change_tooltip:hover, QToolButton#intensity_change_tooltip:hover {
-    background-color: #e6e6e6;
 }</string>
-            </property>
-            <property name="title">
-             <string>Beam-change settings</string>
-            </property>
-            <layout class="QVBoxLayout" name="beam_change_layout">
-             <property name="leftMargin">
-              <number>4</number>
-             </property>
-             <property name="topMargin">
-              <number>4</number>
-             </property>
-             <property name="rightMargin">
-              <number>4</number>
-             </property>
-             <property name="bottomMargin">
-              <number>4</number>
-             </property>
-             <item>
-              <layout class="QHBoxLayout" name="energy_change_layout">
-               <item>
-                <widget class="QLabel" name="energy_change_label">
-                 <property name="minimumSize">
-                  <size>
-                   <width>130</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Change energy</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="energy_nominal_label">
-                 <property name="text">
-                  <string>Nominal</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="energy_nominal_input">
-                 <property name="maximumSize">
-                  <size>
-                   <width>110</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="energy_test_label">
-                 <property name="text">
-                  <string>Test</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="energy_test_input">
-                 <property name="maximumSize">
-                  <size>
-                   <width>110</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QToolButton" name="energy_change_tooltip">
-                 <property name="text">
-                  <string>?</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
+               </property>
+               <property name="title">
+                <string>Change intensity</string>
+               </property>
+               <layout class="QVBoxLayout" name="intensity_change_layout" stretch="1,0,1">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <property name="leftMargin">
+                 <number>8</number>
+                </property>
+                <property name="topMargin">
+                 <number>12</number>
+                </property>
+                <property name="rightMargin">
+                 <number>8</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>12</number>
+                </property>
+                <item>
+                 <spacer name="intensity_change_top_spacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="intensity_change_values_layout">
+                  <property name="spacing">
+                   <number>6</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="intensity_nominal_label">
+                    <property name="text">
+                     <string>Nominal</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="intensity_nominal_input">
+                    <property name="maximumSize">
+                     <size>
+                      <width>110</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="intensity_test_label">
+                    <property name="text">
+                     <string>Test</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="intensity_test_input">
+                    <property name="maximumSize">
+                     <size>
+                      <width>110</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QToolButton" name="intensity_change_tooltip">
+                    <property name="text">
+                     <string>?</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="intensity_change_values_spacer">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <spacer name="intensity_change_vertical_spacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </widget>
              </item>
              <item>
-              <layout class="QHBoxLayout" name="intensity_change_layout">
-               <item>
-                <widget class="QLabel" name="intensity_change_label">
-                 <property name="minimumSize">
-                  <size>
-                   <width>130</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Change intensity</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="intensity_nominal_label">
-                 <property name="text">
-                  <string>Nominal</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="intensity_nominal_input">
-                 <property name="maximumSize">
-                  <size>
-                   <width>110</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="intensity_test_label">
-                 <property name="text">
-                  <string>Test</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="intensity_test_input">
-                 <property name="maximumSize">
-                  <size>
-                   <width>110</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QToolButton" name="intensity_change_tooltip">
-                 <property name="text">
-                  <string>?</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
+              <widget class="QGroupBox" name="energy_change_group">
+               <property name="styleSheet">
+                <string notr="true">QGroupBox {
+    background-color: rgb(245, 245, 245);
+    border: 1px solid rgb(210, 210, 210);
+    border-radius: 6px;
+    margin-top: 4px;
+    padding-top: 6px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px 0 4px;
+}</string>
+               </property>
+               <property name="title">
+                <string>Change energy</string>
+               </property>
+               <layout class="QVBoxLayout" name="energy_change_layout" stretch="1,0,0,1">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <property name="leftMargin">
+                 <number>8</number>
+                </property>
+                <property name="topMargin">
+                 <number>12</number>
+                </property>
+                <property name="rightMargin">
+                 <number>8</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>12</number>
+                </property>
+                <item>
+                 <spacer name="energy_change_top_spacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="energy_change_values_layout">
+                  <property name="spacing">
+                   <number>6</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="energy_nominal_label">
+                    <property name="text">
+                     <string>Nominal</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="energy_nominal_input">
+                    <property name="maximumSize">
+                     <size>
+                      <width>110</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="energy_test_label">
+                    <property name="text">
+                     <string>Test</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="energy_test_input">
+                    <property name="maximumSize">
+                     <size>
+                      <width>110</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QToolButton" name="energy_change_tooltip">
+                    <property name="text">
+                     <string>?</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="energy_change_values_spacer">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="beam_change_method_layout">
+                  <property name="spacing">
+                   <number>6</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="beam_change_method_label">
+                    <property name="text">
+                     <string>Method</string>
+                    </property>
+                    <property name="buddy">
+                     <cstring>beam_change_method_combo</cstring>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QComboBox" name="beam_change_method_combo">
+                    <property name="minimumSize">
+                     <size>
+                      <width>200</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>Default</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>Quadrupole scaling</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QToolButton" name="beam_change_method_tooltip">
+                    <property name="toolTip">
+                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose the method used for the energy change: Quadrupole scaling or Default, which uses the method specific to the selected machine.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="text">
+                     <string>?</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="beam_change_method_spacer">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <spacer name="energy_change_bottom_spacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -423,6 +661,16 @@ QGroupBox#trajectory_group_3::title {
                  </property>
                  <property name="text">
                   <string>...</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QToolButton" name="trajectory_response_tooltip">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Load the directory containing data collected with System Identification (SysID) in Orbit mode. This data is required for all correction modes.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                 <property name="text">
+                  <string>?</string>
                  </property>
                 </widget>
                </item>
@@ -503,6 +751,16 @@ QGroupBox#groupBox_6::title {
                    </property>
                   </widget>
                  </item>
+                 <item>
+                  <widget class="QToolButton" name="dfs_response_tooltip">
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Load the directory containing data collected with System Identification (SysID) in Changed Energy mode. This data is required for dispersion-free steering (DFS).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   </property>
+                   <property name="text">
+                    <string>?</string>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
                </item>
               </layout>
@@ -580,90 +838,15 @@ QGroupBox#groupBox_7::title {
                  </property>
                 </widget>
                </item>
-              </layout>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QGroupBox" name="beam_change_method_group">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QGroupBox#beam_change_method_group {
-    background-color: rgb(245, 245, 245);
-    border: 1px solid rgb(210, 210, 210);
-    border-radius: 6px;
-    margin-top: 8px;
-    padding-top: 6px;
-}
-QGroupBox#beam_change_method_group::title {
-    subcontrol-origin: margin;
-    left: 10px;
-    padding: 0 4px 0 4px;
-}</string>
-            </property>
-            <property name="title">
-             <string>Beam change method</string>
-            </property>
-            <layout class="QVBoxLayout" name="beam_change_method_layout">
-             <item>
-              <layout class="QHBoxLayout" name="beam_change_method_row">
                <item>
-                <spacer name="beam_change_method_left_spacer">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                <widget class="QToolButton" name="wfs_response_tooltip">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Load the directory containing data collected with System Identification (SysID) in Changed Intensity (Charge) mode. This data is required for wakefield-free steering (WFS).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
-                 <property name="sizeType">
-                  <enum>QSizePolicy::Expanding</enum>
+                 <property name="text">
+                  <string>?</string>
                  </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QComboBox" name="beam_change_method_combo">
-                 <property name="minimumSize">
-                  <size>
-                   <width>200</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <item>
-                  <property name="text">
-                   <string>Default</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Quadrupole scaling</string>
-                  </property>
-                 </item>
                 </widget>
-               </item>
-               <item>
-                <spacer name="beam_change_method_right_spacer">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeType">
-                  <enum>QSizePolicy::Expanding</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
                </item>
               </layout>
              </item>
@@ -716,9 +899,29 @@ QGroupBox#additional_measurements_group::title {
               </widget>
              </item>
              <item>
+              <widget class="QToolButton" name="measure_dispersion_tooltip">
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Measure dispersion on the machine, display the results in a pop-up plot, and save them to a text file.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
+               <property name="text">
+                <string>?</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QPushButton" name="measure_wakefields_button">
                <property name="text">
                 <string>Measure Wakefields</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="measure_wakefields_tooltip">
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Measure wakefields on the machine, display the results in a pop-up plot, and save them to a text file.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
+               <property name="text">
+                <string>?</string>
                </property>
               </widget>
              </item>

@@ -386,12 +386,15 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _setup_beam_change_controls(self):
         beam_change = (self._get_interface_initial_settings() or {}).get("beam_change", {})
+        change_energy_methods = beam_change.get("methods", [])
+        self.beam_change_method_combo.clear()
+        self.beam_change_method_combo.addItems(change_energy_methods)
         self._beam_change_fields = []
         self.beam_change_group.setVisible(bool(beam_change))
 
         controls = {
             "energy": (
-                self.energy_change_label,
+                self.energy_change_group,
                 self.energy_nominal_label,
                 self.energy_nominal_input,
                 self.energy_test_label,
@@ -399,7 +402,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 self.energy_change_tooltip,
             ),
             "intensity": (
-                self.intensity_change_label,
+                self.intensity_change_group,
                 self.intensity_nominal_label,
                 self.intensity_nominal_input,
                 self.intensity_test_label,
@@ -416,7 +419,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 for widget in (nominal_label, nominal_input, test_label, test_input):
                     widget.setVisible(False)
                 continue
-            title.setText(settings["label"])
+            title.setTitle(settings["label"])
+            title.setStyleSheet(title.styleSheet())
             tooltip.setToolTip(settings["tooltip"])
             for slot, label, input_widget in (
                     ("nominal", nominal_label, nominal_input),
