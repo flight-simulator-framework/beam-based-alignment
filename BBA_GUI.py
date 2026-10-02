@@ -332,16 +332,13 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
         if values_x:
             err_x = error_x if error_x is not None else None
-            ax.errorbar(range(len(values_x)), values_x, yerr=err_x, marker="o", color="red", label="x", capsize=6,
-                        elinewidth=2, capthick=2, markersize=4)
+            ax.errorbar(range(len(values_x)), values_x, yerr=err_x, marker="o", color="red", label="x", capsize=6, elinewidth=2, capthick=2, markersize=4)
         if values_y:
             err_y = error_y if error_y is not None else None
-            ax.errorbar(range(len(values_y)), values_y, yerr=err_y, marker="o", color="blue", label="y", capsize=6,
-                        elinewidth=2, capthick=2, markersize=4)
+            ax.errorbar(range(len(values_y)), values_y, yerr=err_y, marker="o", color="blue", label="y", capsize=6, elinewidth=2, capthick=2, markersize=4)
         if vals:
             err_all = error_all if error_all is not None else None
-            ax.errorbar(range(len(vals)), vals, yerr=err_all, linestyle="dashed", color="black", label="combined norm",
-                        capsize=6, elinewidth=2, capthick=2, markersize=4)
+            ax.errorbar(range(len(vals)), vals, yerr=err_all, linestyle="dashed", color="black", label="combined norm", capsize=6, elinewidth=2, capthick=2, markersize=4)
 
         if values_x or values_y or vals:
             ax.legend(fontsize=9, loc="upper right")
@@ -382,7 +379,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         labels = self._intensity_labels
         self.groupBox_7.setTitle(labels["correction"])
         self.groupBox_4.setTitle(labels["plot_title"])
-        self.mode_wakefield.setText(labels["quantity"])
+        self.mode_wakefield.setText(labels["mode_option_label"])
         self.label_3.setText(labels["weight"])
         self.label_3.setWordWrap(True)
         self.wakefield_weight_tooltip.setToolTip(labels["weight_tooltip"])
@@ -500,8 +497,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _load_beam_change_values(self, values):
         method = values.get("_method")
-        if method is None and "quadrupole_scaling_factor" in values:
-            method = "Changing RF phase and quadrupole scaling"
         if method is not None:
             index = self.beam_change_method_combo.findText(method)
             if index < 0:
@@ -584,7 +579,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         bpm_name = bpm.data(Qt.ItemDataRole.UserRole) or (bpm.text() or "")
         if not bpm_name:
             bpm_name = (bpm.text() or "").split("    [", 1)[0]
-        bpm_window = BPM_weights(bpm_name=bpm_name, parent=self, intensity_label=self._intensity_labels["short"])
+        bpm_window = BPM_weights(bpm_name=bpm_name, parent=self, intensity_label=self._intensity_labels["compact_label"])
         if bpm_name in self.bpm_weights:
             w_orb, w_dfs, w_wfs = self.bpm_weights[bpm_name]
             bpm_window.set_values(w_orb, w_dfs, w_wfs)
@@ -1497,7 +1492,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _show_test_orbits(self):
         if self.test_orbits is None:
-            self.test_orbits = TestOrbits(self, intensity_label=self._intensity_labels["short"])
+            self.test_orbits = TestOrbits(self, intensity_label=self._intensity_labels["compact_label"])
         if not hasattr(self, "test_orbits_data") or self.test_orbits_data is None:
             QMessageBox.information(self, "No test orbits available", "No test orbits available.")
         else:

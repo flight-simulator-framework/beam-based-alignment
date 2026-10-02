@@ -75,7 +75,7 @@ class QM_mode_helpers:
 
         if is_qm:
             self.groupBox_6.setTitle("DFS not used in QM mode")
-            self.groupBox_7.setTitle(f"{self._intensity_labels['short']} not used in QM mode")
+            self.groupBox_7.setTitle(f"{self._intensity_labels['compact_label']} not used in QM mode")
             self.label.setText("Trajectory hold weight")
             self.lineEdit.setText("0.0")
             self.lineEdit_2.setText("1.0")
