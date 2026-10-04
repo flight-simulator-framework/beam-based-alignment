@@ -34,7 +34,9 @@ from beam_based_alignment.BBA_helpers.BPM_weights import BPM_weights
 from machine_interfaces.Backend.ActuatorMode import ActuatorMode
 from traceback import print_exception
 from machine_interfaces.Interfaces.interface_setup import INTERFACE_SETUP, get_intensity_labels
+from machine_interfaces.Backend.EnergyChangeMethod import EnergyChangeMethod
 from machine_interfaces.Knobs.jitter_subtraction import (apply_jitter_subtraction, explain_reference_selection, fit_jitter_model)
+from enum import Enum
 
 
 class PlotPopup(QMainWindow):
@@ -159,6 +161,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.initial_charge_value = None
         self.orbit_at_first_start_click_x = None
         self.orbit_at_first_start_click_y = None
+        self.method = self.beam_change_method_combo.currentData()
+        print(self.method)
 
     def _save_machine_status(self):
         saved_at = self._clock_now()
@@ -235,7 +239,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.max_horizontal_current_spinbox.setSingleStep(0.01)
         self.max_vertical_current_spinbox.setValue(max_curr_v)
         self.max_vertical_current_spinbox.setSingleStep(0.01)
-
         self._refresh_metric_plots_for_mode()
 
     def _setup_nsamples_control(self):
@@ -394,7 +397,9 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self._beam_change_texts = {}
         self._beam_change_fields = []
         self.beam_change_method_combo.clear()
-        self.beam_change_method_combo.addItems(beam_change.get("methods", []))
+        for label in beam_change["methods"]:
+            self.method = EnergyChangeMethod(beam_change["method_ids"][label])
+            self.beam_change_method_combo.addItem(label, self.method)
         self._beam_change_method = self.beam_change_method_combo.currentText()
         self.beam_change_method_combo.currentTextChanged.connect(self._change_energy_method)
         self._refresh_beam_change_controls()
@@ -510,20 +515,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             input_widget.setText("" if value is None else str(value))
         return self._apply_beam_change_controls()
 
-    def _beam_action(self, action):
-        method = self._beam_method_profile().get("actions", {}).get(action, action)
-        return getattr(self.interface, method)()
-
-    def _measure_changed_beam(self, kind):
-        try:
-            change = self._beam_action(f"change_{kind}")
-            state = self._apply_jitter_subtraction_to_state(self.interface.get_state())
-            if kind == "energy":
-                change = self._beam_method_profile().get("energy_offset", change)
-            return state, change
-        finally:
-            self._beam_action(f"reset_{kind}")
-
     def _restore_initial_settings(self):
         self.log("Restoring initial settings...")
         self._cancel = True
@@ -531,9 +522,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         w1, w2, w3, rcond, iters, gain, beta, transmission_threshold= self._read_params()
         try:
             if w2 > 0:
-                self._beam_action("reset_energy")
+                self.interface.reset_energy(method=self.method)
             if w3 > 0:
-                self._beam_action("reset_intensity")
+                if self.method == EnergyChangeMethod.BOTH:
+                    self.interface.reset_energy(method=self.method, which_method=2)
+                else:
+                    self.interface.reset_intensity()
         except Exception:
             self.log(f"The machine wasn't restored to its nominal state.")
             QMessageBox.critical(self, "Restore error",
@@ -594,6 +588,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         if not self._running:
             if not self._apply_beam_change_controls():
                 return
+            self.method = self.beam_change_method_combo.currentData()
             saved_state = self._save_machine_status()
             self._running = True
             self.beam_change_group.setEnabled(False)
@@ -976,9 +971,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             if not adaptive_orbit_only:
                 self._adaptive_R = None
             if w2 > 0:
-                self._beam_action("reset_energy")
+                self.interface.reset_energy(method=self.method)
             if w3 > 0:
-                self._beam_action("reset_intensity")
+                if self.method == EnergyChangeMethod.BOTH:
+                    self.interface.reset_energy(method=self.method, which_method=2)
+                else:
+                    self.interface.reset_intensity()
 
             samples_dir = os.path.join(self._session_dir, "BBA_states")
             os.makedirs(samples_dir, exist_ok=True)
@@ -1077,9 +1075,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 if w2 > 0:
                     print("Measuring dispersion")
                     self.log("Measuring dispersion")
-                    state1, dP_P = self._measure_changed_beam("energy")
+                    dP_P = self.interface.change_energy(method=self.method)
+                    state1 = self.interface.get_state()
+                    state1 = self._apply_jitter_subtraction_to_state(state1)
                     energy_file = os.path.join(samples_dir, f"ITER_{it:04d}_energy.pkl")
                     state1.save(filename=energy_file)
+                    self.interface.reset_energy(method=self.method)
                     O1 = state1.get_orbit(bpms)
                     O1x = np.asarray(O1['x'], dtype=float).reshape(-1, 1)
                     O1y = np.asarray(O1['y'], dtype=float).reshape(-1, 1)
@@ -1103,9 +1104,18 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 if w3 > 0:
                     print(self._intensity_labels["measuring"])
                     self.log(self._intensity_labels["measuring"])
-                    state2, _ = self._measure_changed_beam("intensity")
+                    if self.method == EnergyChangeMethod.BOTH:
+                        self.interface.change_energy(method=self.method, which_method=2)
+                    else:
+                        self.interface.change_intensity()
+                    state2 = self.interface.get_state()
+                    state2 = self._apply_jitter_subtraction_to_state(state2)
                     intensity_file = os.path.join(samples_dir, f"ITER_{it:04d}_intensity.pkl")
                     state2.save(filename=intensity_file)
+                    if self.method == EnergyChangeMethod.BOTH:
+                        self.interface.reset_energy(method=self.method, which_method=2)
+                    else:
+                        self.interface.reset_intensity()
                     O2 = state2.get_orbit(bpms)
                     O2x = np.asarray(O2['x'], dtype=float).reshape(-1, 1)
                     O2y = np.asarray(O2['y'], dtype=float).reshape(-1, 1)
