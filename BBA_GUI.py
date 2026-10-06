@@ -1,5 +1,5 @@
 import beam_based_alignment
-import sys, os, re, matplotlib
+import sys, os, re, glob, shutil, matplotlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import numpy as np
@@ -964,12 +964,10 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             plt.ion()
 
             self.use_adaptive_R = getattr(self, "use_adaptive_R", True)
-            self._adaptive_R = getattr(self, "_adaptive_R", None)
+            self._adaptive_R = None  # the matrix from files already includes earlier corrections
             self._adaptive_R_prev_kick = None
             self._adaptive_R_prev_orbit = None
             adaptive_orbit_only = self.use_adaptive_R and w1 > 0 and w2 == 0 and w3 == 0
-            if not adaptive_orbit_only:
-                self._adaptive_R = None
             if w2 > 0:
                 self.interface.reset_energy(method=self.method)
             if w3 > 0:
@@ -1413,6 +1411,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     samples_dir, f"ITER_{last_completed_iteration + 1:04d}_nominal.pkl")
                 final_state.save(filename=final_nominal_file)
                 self.log(f"Saved final nominal BBA state: {os.path.basename(final_nominal_file)}")
+            # Add this correction's states to the response-matrix data it used, so the next fit includes them
+            session = os.path.basename(self._session_dir)
+            for key, kind in (("traj", "nominal"), ("dfs", "energy"), ("wfs", "intensity")):
+                if self._data_dirs.get(key):
+                    for fn in glob.glob(os.path.join(samples_dir, f"ITER_*_{kind}.pkl")):
+                        shutil.copy(fn, os.path.join(self._data_dirs[key]["dir"], f"{session}_{os.path.basename(fn)}"))
             screens_f = final_state.get_screens()
             print("Screen values after correction:")
             print(f"Sigx: {screens_f['sigx']}")
