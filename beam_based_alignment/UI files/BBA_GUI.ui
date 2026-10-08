@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1512</width>
-    <height>968</height>
+    <height>962</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -222,6 +222,124 @@ QGroupBox#restore_machine_status_group::title {
            </widget>
           </item>
           <item>
+           <widget class="QGroupBox" name="bpm_acquisition_group">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QGroupBox#bpm_acquisition_group {
+    background-color: rgb(245, 245, 245);
+    border: 1px solid rgb(210, 210, 210);
+    border-radius: 6px;
+    margin-top: 4px;
+    padding-top: 6px;
+}
+QGroupBox#bpm_acquisition_group::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px 0 4px;
+}</string>
+            </property>
+            <property name="title">
+             <string>BPM acquisition</string>
+            </property>
+            <layout class="QVBoxLayout" name="bpm_acquisition_layout">
+             <property name="leftMargin">
+              <number>8</number>
+             </property>
+             <property name="topMargin">
+              <number>12</number>
+             </property>
+             <property name="rightMargin">
+              <number>8</number>
+             </property>
+             <property name="bottomMargin">
+              <number>8</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="nsamples_layout">
+               <item>
+                <widget class="QLabel" name="nsamples_label">
+                 <property name="minimumSize">
+                  <size>
+                   <width>130</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>130</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>BPM samples</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="nsamples_input">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>110</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QToolButton" name="nsamples_tooltip">
+                 <property name="toolTip">
+                  <string>Number of BPM samples acquired for each measurement. Larger values reduce random noise but increase measurement time.</string>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QToolButton#nsamples_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#nsamples_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
+                 </property>
+                 <property name="text">
+                  <string>?</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="bpm_acquisition_spacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
            <widget class="QWidget" name="beam_change_group" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -264,10 +382,7 @@ QGroupBox::title {
                <property name="title">
                 <string>Change intensity</string>
                </property>
-               <layout class="QVBoxLayout" name="intensity_change_layout" stretch="1,0,1">
-                <property name="spacing">
-                 <number>6</number>
-                </property>
+               <layout class="QGridLayout" name="intensity_change_layout" columnstretch="1,0">
                 <property name="leftMargin">
                  <number>8</number>
                 </property>
@@ -278,22 +393,12 @@ QGroupBox::title {
                  <number>8</number>
                 </property>
                 <property name="bottomMargin">
-                 <number>12</number>
+                 <number>10</number>
                 </property>
-                <item>
-                 <spacer name="intensity_change_top_spacer">
-                  <property name="orientation">
-                   <enum>Qt::Vertical</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>0</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
-                <item>
+                <property name="spacing">
+                 <number>8</number>
+                </property>
+                <item row="0" column="0" colspan="2">
                  <layout class="QHBoxLayout" name="intensity_change_values_layout">
                   <property name="spacing">
                    <number>6</number>
@@ -366,18 +471,133 @@ QGroupBox::title {
                   </item>
                  </layout>
                 </item>
-                <item>
-                 <spacer name="intensity_change_vertical_spacer">
-                  <property name="orientation">
-                   <enum>Qt::Vertical</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
+                <item row="1" column="0" colspan="2">
+                 <widget class="QWidget" name="intensity_change_method_placeholder" native="true">
+                  <property name="minimumSize">
                    <size>
                     <width>0</width>
-                    <height>0</height>
+                    <height>23</height>
                    </size>
                   </property>
-                 </spacer>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>23</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="0" colspan="2">
+                 <widget class="QGroupBox" name="intensity_measurement_group">
+                  <property name="styleSheet">
+                   <string notr="true">QGroupBox#intensity_measurement_group {
+    background-color: rgb(245, 245, 245);
+    border: 1px solid rgb(210, 210, 210);
+    border-radius: 6px;
+    margin-top: 4px;
+    padding-top: 6px;
+}
+QGroupBox#intensity_measurement_group::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px 0 4px;
+}</string>
+                  </property>
+                  <property name="title">
+                   <string>Test orbit measurement</string>
+                  </property>
+                  <layout class="QGridLayout" name="intensity_measurement_layout" columnstretch="1,0,0">
+                   <property name="leftMargin">
+                    <number>8</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>18</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>8</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>8</number>
+                   </property>
+                   <property name="spacing">
+                    <number>6</number>
+                   </property>
+                   <item row="1" column="2">
+                    <widget class="QToolButton" name="no_of_meas_wfs_tooltip">
+                     <property name="toolTip">
+                      <string/>
+                     </property>
+                     <property name="text">
+                      <string>?</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="no_of_meas_wfs_label">
+                     <property name="text">
+                      <string>Number of measurements:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="0" colspan="3">
+                    <widget class="QPushButton" name="show_wfs_test_orbit_button">
+                     <property name="text">
+                      <string>Display O2 - O0 test orbit</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0" colspan="3">
+                    <layout class="QHBoxLayout" name="intensity_measurement_actions_layout" stretch="1,1,0">
+                     <property name="spacing">
+                      <number>6</number>
+                     </property>
+                     <item>
+                      <widget class="QPushButton" name="measure_wakefields_button">
+                       <property name="styleSheet">
+                        <string notr="true">background-color: red; color: white;</string>
+                       </property>
+                       <property name="text">
+                        <string>Measure Wakefields</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="stop_wakefields_measurement_button">
+                       <property name="styleSheet">
+                        <string notr="true">background-color: green; color: white;</string>
+                       </property>
+                       <property name="text">
+                        <string>Stop measurement</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="measure_wakefields_tooltip">
+                       <property name="toolTip">
+                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Measure wakefields on the machine, display the results in a pop-up plot, and save them to a text file.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                       </property>
+                       <property name="text">
+                        <string>?</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QDoubleSpinBox" name="no_of_meas_wfs_test_orbit">
+                     <property name="decimals">
+                      <number>0</number>
+                     </property>
+                     <property name="maximum">
+                      <double>1000.000000000000000</double>
+                     </property>
+                     <property name="value">
+                      <double>50.000000000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
                 </item>
                </layout>
               </widget>
@@ -401,10 +621,7 @@ QGroupBox::title {
                <property name="title">
                 <string>Change energy</string>
                </property>
-               <layout class="QVBoxLayout" name="energy_change_layout" stretch="1,0,0,1">
-                <property name="spacing">
-                 <number>6</number>
-                </property>
+               <layout class="QGridLayout" name="energy_change_layout" columnstretch="1,0">
                 <property name="leftMargin">
                  <number>8</number>
                 </property>
@@ -415,22 +632,12 @@ QGroupBox::title {
                  <number>8</number>
                 </property>
                 <property name="bottomMargin">
-                 <number>12</number>
+                 <number>10</number>
                 </property>
-                <item>
-                 <spacer name="energy_change_top_spacer">
-                  <property name="orientation">
-                   <enum>Qt::Vertical</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>0</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
-                <item>
+                <property name="spacing">
+                 <number>8</number>
+                </property>
+                <item row="0" column="0" colspan="2">
                  <layout class="QHBoxLayout" name="energy_change_values_layout">
                   <property name="spacing">
                    <number>6</number>
@@ -503,7 +710,7 @@ QGroupBox::title {
                   </item>
                  </layout>
                 </item>
-                <item>
+                <item row="1" column="0" colspan="2">
                  <layout class="QHBoxLayout" name="beam_change_method_layout">
                   <property name="spacing">
                    <number>6</number>
@@ -575,18 +782,117 @@ QGroupBox::title {
                   </item>
                  </layout>
                 </item>
-                <item>
-                 <spacer name="energy_change_bottom_spacer">
-                  <property name="orientation">
-                   <enum>Qt::Vertical</enum>
+                <item row="2" column="0" colspan="2">
+                 <widget class="QGroupBox" name="energy_measurement_group">
+                  <property name="styleSheet">
+                   <string notr="true">QGroupBox#energy_measurement_group {
+    background-color: rgb(245, 245, 245);
+    border: 1px solid rgb(210, 210, 210);
+    border-radius: 6px;
+    margin-top: 4px;
+    padding-top: 6px;
+}
+QGroupBox#energy_measurement_group::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px 0 4px;
+}</string>
                   </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>0</width>
-                    <height>0</height>
-                   </size>
+                  <property name="title">
+                   <string>Test orbit measurement</string>
                   </property>
-                 </spacer>
+                  <layout class="QGridLayout" name="energy_measurement_layout" columnstretch="1,0,0">
+                   <property name="leftMargin">
+                    <number>8</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>18</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>8</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>8</number>
+                   </property>
+                   <property name="spacing">
+                    <number>6</number>
+                   </property>
+                   <item row="2" column="0" colspan="3">
+                    <widget class="QPushButton" name="show_dfs_test_orbit_button">
+                     <property name="text">
+                      <string>Display O1 - O0 test orbit</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="no_of_meas_dfs_label">
+                     <property name="text">
+                      <string>Number of measurements:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0" colspan="3">
+                    <layout class="QHBoxLayout" name="energy_measurement_actions_layout" stretch="1,1,0">
+                     <property name="spacing">
+                      <number>6</number>
+                     </property>
+                     <item>
+                      <widget class="QPushButton" name="measure_dispersion_button">
+                       <property name="styleSheet">
+                        <string notr="true">background-color: red; color: white;</string>
+                       </property>
+                       <property name="text">
+                        <string>Measure Dispersion</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="stop_dispersion_measurement_button">
+                       <property name="styleSheet">
+                        <string notr="true">background-color: green; color: white;</string>
+                       </property>
+                       <property name="text">
+                        <string>Stop measurement</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="measure_dispersion_tooltip">
+                       <property name="toolTip">
+                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Measure dispersion on the machine, display the results in a pop-up plot, and save them to a text file.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                       </property>
+                       <property name="text">
+                        <string>?</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item row="1" column="2">
+                    <widget class="QToolButton" name="no_of_meas_dfs_tooltip">
+                     <property name="toolTip">
+                      <string/>
+                     </property>
+                     <property name="text">
+                      <string>?</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QDoubleSpinBox" name="no_of_meas_dfs_test_orbit">
+                     <property name="decimals">
+                      <number>0</number>
+                     </property>
+                     <property name="maximum">
+                      <double>1000.000000000000000</double>
+                     </property>
+                     <property name="value">
+                      <double>50.000000000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
                 </item>
                </layout>
               </widget>
@@ -849,81 +1155,6 @@ QGroupBox#groupBox_7::title {
                 </widget>
                </item>
               </layout>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QGroupBox" name="additional_measurements_group">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QGroupBox#additional_measurements_group {
-    background-color: rgb(245, 245, 245);
-    border: 1px solid rgb(210, 210, 210);
-    border-radius: 6px;
-    margin-top: 8px;
-    padding-top: 6px;
-}
-QGroupBox#additional_measurements_group::title {
-    subcontrol-origin: margin;
-    left: 10px;
-    padding: 0 4px 0 4px;
-}</string>
-            </property>
-            <property name="title">
-             <string>Additional measurements</string>
-            </property>
-            <layout class="QHBoxLayout" name="additional_measurements_layout">
-             <property name="leftMargin">
-              <number>4</number>
-             </property>
-             <property name="topMargin">
-              <number>4</number>
-             </property>
-             <property name="rightMargin">
-              <number>4</number>
-             </property>
-             <property name="bottomMargin">
-              <number>4</number>
-             </property>
-             <item>
-              <widget class="QPushButton" name="measure_dispersion_button">
-               <property name="text">
-                <string>Measure Dispersion</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QToolButton" name="measure_dispersion_tooltip">
-               <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Measure dispersion on the machine, display the results in a pop-up plot, and save them to a text file.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="text">
-                <string>?</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="measure_wakefields_button">
-               <property name="text">
-                <string>Measure Wakefields</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QToolButton" name="measure_wakefields_tooltip">
-               <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Measure wakefields on the machine, display the results in a pop-up plot, and save them to a text file.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="text">
-                <string>?</string>
-               </property>
-              </widget>
              </item>
             </layout>
            </widget>
@@ -1898,70 +2129,6 @@ QToolButton#transmission_tooltip:hover {
                     </layout>
                    </item>
                    <item>
-                    <layout class="QHBoxLayout" name="nsamples_layout">
-                     <item>
-                      <widget class="QLabel" name="nsamples_label">
-                       <property name="minimumSize">
-                        <size>
-                         <width>130</width>
-                         <height>0</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>130</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>BPM samples</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLineEdit" name="nsamples_input">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>500</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QToolButton" name="nsamples_tooltip">
-                       <property name="toolTip">
-                        <string>Number of BPM samples acquired for each measurement. Larger values reduce random noise but increase measurement time.</string>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">QToolButton#nsamples_tooltip {
-    border: 1px solid #888;
-    border-radius: 10px;
-    min-width: 20px;
-    max-width: 20px;
-    min-height: 20px;
-    max-height: 20px;
-    padding: 0px;
-    font-weight: bold;
-}
-QToolButton#nsamples_tooltip:hover {
-    background-color: #e6e6e6;
-}</string>
-                       </property>
-                       <property name="text">
-                        <string>?</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
                     <layout class="QHBoxLayout" name="jitter_subtraction_layout">
                      <item>
                       <widget class="QCheckBox" name="subtract_jitter_checkbox">
@@ -2145,13 +2312,6 @@ QGroupBox#correction_controls_group::title {
                     <widget class="QPushButton" name="pushButton_log">
                      <property name="text">
                       <string>Log Console</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QPushButton" name="pushButton_testorb">
-                     <property name="text">
-                      <string>Display test orbits</string>
                      </property>
                     </widget>
                    </item>

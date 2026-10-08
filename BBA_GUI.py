@@ -26,7 +26,6 @@ matplotlib.use("QtAgg")
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from machine_interfaces.Backend.LogConsole import LogConsole
-from beam_based_alignment.BBA_helpers.TestOrbits_BBA import TestOrbits
 from machine_interfaces.Backend.SaveOrLoad import SaveOrLoad
 from response_matrix.ResponseMatrix_DFS_WFS import ResponseMatrix_DFS_WFS, AdaptiveResponseMatrix
 import matplotlib.pyplot as plt
@@ -105,7 +104,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             name: getattr(self, name).toolTip()
             for name in ("subtract_jitter_checkbox", "jitter_subtraction_tooltip", "wfs_response_tooltip", "measure_wakefields_tooltip")
         }
-        self._default_measure_wakefields_text = self.measure_wakefields_button.text()
+        self._default_measure_texts = {"energy": self.measure_dispersion_button.text(),
+                                       "intensity": self.measure_wakefields_button.text()}
         self._setup_intensity_labels()
         self._clock_zone_name = self._get_clock_zone()
         self._setup_machine_clock()
@@ -126,7 +126,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self._hist_abs_rms_x, self._hist_abs_rms_y, self._hist_abs_rms_xy = [], [], []
         self.log_console = None
         self.show_response_matrix = None
-        self.test_orbits = None
         self.traj_popup, self.disp_popup, self.wake_popup = None, None, None
         self._setup_canvases()
         self._plot_double_clicks()
@@ -137,7 +136,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.load_bpms_button.clicked.connect(self._load_bpms)
         self.radio_buttons = [self.mode_orbit, self.mode_dispersion, self.mode_wakefield]
         self.pushButton_log.clicked.connect(self._show_console_log)
-        self.pushButton_testorb.clicked.connect(self._show_test_orbits)
         self.session_database_3.setText(dir_name)
         self.pushButton_8.clicked.connect(self._pick_and_load_traj_data)
         self.pushButton_9.clicked.connect(self._pick_and_load_disp_data)
@@ -162,8 +160,71 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.orbit_at_first_start_click_x = None
         self.orbit_at_first_start_click_y = None
         self.method = self.beam_change_method_combo.currentData()
+        self.n_dfs_measurements = self.no_of_meas_dfs_test_orbit.value()
+        self.n_wfs_measurements = self.no_of_meas_wfs_test_orbit.value()
+        self.measure_wakefields_button.clicked.connect(self._wakefields_measurement)
+        self.measure_dispersion_button.clicked.connect(self._dispersion_measurement)
         print(self.method)
+        self.disp_quad_scaling_test_orbit_x = []
+        self.disp_quad_scaling_test_orbit_y = []
+        self.disp_rf_phase_test_orbit_x = []
+        self.disp_rf_phase_test_orbit_y = []
+        self.wake_test_orbit_x = []
+        self.wake_test_orbit_y = []
 
+    def _dispersion_measurement(self):
+        for it in range(int(self.n_dfs_measurements)):
+            state0 = self.interface.get_state()
+            O0 = state0.get_orbit()
+            O0x = np.asarray(O0['x'], dtype=float).reshape(-1, 1)
+            O0y = np.asarray(O0['y'], dtype=float).reshape(-1, 1)
+            bpms0 = state0.get_bpms()
+
+            self.interface.change_energy(method=self.method)
+            state1 = self.interface.get_state()
+            self.interface.reset_energy(method=self.method)
+            if self.method==EnergyChangeMethod.DEFAULT:
+                energy_file = os.path.join(self.nsamples_input.text(), f"disp_measurement_{it:04d}_quad_scaling.pkl")
+                state1.save(filename=energy_file)
+                O1 = state1.get_orbit()
+                O1x = np.asarray(O1['x'], dtype=float).reshape(-1, 1)
+                O1y = np.asarray(O1['y'], dtype=float).reshape(-1, 1)
+                bpms1 = state1.get_bpms()
+                self.disp_rf_phase_test_orbit_x.append(O1x)
+                self.disp_rf_phase_test_orbit_y.append(O1y)
+            elif self.method==EnergyChangeMethod.QUADRUPOLE_SCALING:
+                energy_file = os.path.join(self.nsamples_input.text(), f"disp_measurement_{it:04d}_quad_scaling.pkl")
+                state1.save(filename=energy_file)
+                O1 = state1.get_orbit()
+                O1x = np.asarray(O1['x'], dtype=float).reshape(-1, 1)
+                O1y = np.asarray(O1['y'], dtype=float).reshape(-1, 1)
+                bpms1 = state1.get_bpms()
+                self.disp_quad_scaling_test_orbit_x.append(O1x)
+                self.disp_quad_scaling_test_orbit_y.append(O1y)
+
+    def _wakefields_measurement(self):
+        for it in range(int(self.n_wfs_measurements)):
+            state0 = self.interface.get_state()
+            O0 = state0.get_orbit()
+            O0x = np.asarray(O0['x'], dtype=float).reshape(-1, 1)
+            O0y = np.asarray(O0['y'], dtype=float).reshape(-1, 1)
+            bpms0 = state0.get_bpms()
+
+            if self.method==EnergyChangeMethod.DEFAULT:
+                self.interface.change_intensity(method=self.method)
+                state2 = self.interface.get_state()
+                self.interface.reset_intensity(method=self.method)
+                wakefield_file = os.path.join(self.nsamples_input.text(), f"wake_measurement_{it:04d}_quad_scaling.pkl")
+                state2.save(filename=wakefield_file)
+                O2 = state2.get_orbit()
+                O2x = np.asarray(O2['x'], dtype=float).reshape(-1, 1)
+                O2y = np.asarray(O2['y'], dtype=float).reshape(-1, 1)
+                bpms2 = state2.get_bpms()
+                self.wake_test_orbit_x.append(O2x)
+                self.wake_test_orbit_y.append(O2y)
+            elif self.method == EnergyChangeMethod.QUADRUPOLE_SCALING:
+                self._dispersion_measurement()
+                
     def _save_machine_status(self):
         saved_at = self._clock_now()
         time_str = saved_at.strftime("%y%m%d%H%M%S")
@@ -389,7 +450,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         for name in ("subtract_jitter_checkbox", "jitter_subtraction_tooltip"):
             getattr(self, name).setToolTip(labels.get("jitter_tooltip", self._default_beam_tooltips[name]))
         self.wfs_response_tooltip.setToolTip(labels.get("response_tooltip", self._default_beam_tooltips["wfs_response_tooltip"]))
-        self.measure_wakefields_button.setText(labels.get("measurement_button", self._default_measure_wakefields_text))
         self.measure_wakefields_tooltip.setToolTip(labels.get("measurement_tooltip", self._default_beam_tooltips["measure_wakefields_tooltip"]))
 
     def _setup_beam_change_controls(self):
@@ -421,10 +481,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         for key, widget in (("dfs", self.dfs_response_3), ("wfs", self.wfs_response_3)):
             self._data_dirs[key] = None
             widget.clear()
-        self.test_orbits_data = None
-        if self.test_orbits is not None:
-            self.test_orbits.close()
-            self.test_orbits = None
         self._clear_graphs()
 
     def _refresh_beam_change_controls(self):
@@ -443,6 +499,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 self.energy_test_label,
                 self.energy_test_input,
                 self.energy_change_tooltip,
+                self.measure_dispersion_button,
             ),
             "intensity": (
                 self.intensity_change_group,
@@ -451,10 +508,11 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 self.intensity_test_label,
                 self.intensity_test_input,
                 self.intensity_change_tooltip,
+                self.measure_wakefields_button,
             ),
         }
         for kind, widgets in controls.items():
-            title, nominal_label, nominal_input, test_label, test_input, tooltip = widgets
+            title, nominal_label, nominal_input, test_label, test_input, tooltip, measure_button = widgets
             settings = profile.get(kind, beam_change.get(kind))
             title.setVisible(settings is not None)
             tooltip.setVisible(settings is not None)
@@ -464,6 +522,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 continue
             title.setTitle(settings["label"])
             title.setStyleSheet(title.styleSheet())
+            measure_button.setText(settings.get("measurement_button", self._default_measure_texts[kind]))
             tooltip.setToolTip(settings["tooltip"])
             for slot, label, input_widget in (
                     ("nominal", nominal_label, nominal_input),
@@ -1040,10 +1099,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 self._hist_abs_rms_y.append(orbit_rms_y)
                 self._hist_abs_rms_xy.append(orbit_rms_xy)
 
-                '''
-                UNCOMMENT AFTER SANITY CHECKS 
-                '''
-
                 if it == 0:
                     if self.orbit_at_first_start_click_x is None and self.orbit_at_first_start_click_y is None:
                         B0x = O0x.copy()
@@ -1122,17 +1177,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     y2_vals = np.asarray(bpms2["y"], dtype=float)
                 else:
                     O2x = O2y = None
-                self.test_orbits_data = {
-                    "selected_bpms": list(bpms),
-                    "O0x": np.asarray(O0x).reshape(-1),  # because np.array is creating a copy
-                    "O1x": None if O1x is None else np.asarray(O1x).reshape(-1),
-                    "O2x": None if O2x is None else np.asarray(O2x).reshape(-1),
-                    "O0y": np.asarray(O0y).reshape(-1),
-                    "O1y": None if O1y is None else np.asarray(O1y).reshape(-1),
-                    "O2y": None if O2y is None else np.asarray(O2y).reshape(-1),
-                    "dfs_err_x": None if w2 <= 0 else np.asarray(err_dx).reshape(-1),
-                    "dfs_err_y": None if w2 <= 0 else np.asarray(err_dy).reshape(-1),
-                }
                 if not hasattr(self, "rms_orbits_data") or self.rms_orbits_data is None:
                     self.rms_orbits_data = {}
 
@@ -1504,21 +1548,11 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         QMessageBox.information(self, "Correction", "Stop requested. Finishing current iteration...")
         self.log("Stop requested. Finishing current iteration...")
 
-    def _show_test_orbits(self):
-        if self.test_orbits is None:
-            self.test_orbits = TestOrbits(self, intensity_label=self._intensity_labels["compact_label"])
-        if not hasattr(self, "test_orbits_data") or self.test_orbits_data is None:
-            QMessageBox.information(self, "No test orbits available", "No test orbits available.")
-        else:
-            self.test_orbits._plot_test_orbits(selected_bpms=self.test_orbits_data["selected_bpms"],
-                                               O0x=self.test_orbits_data["O0x"], O0y=self.test_orbits_data["O0y"],
-                                               O1x=self.test_orbits_data["O1x"], O1y=self.test_orbits_data["O1y"],
-                                               O2x=self.test_orbits_data["O2x"], O2y=self.test_orbits_data["O2y"],
-                                               dfs_err_x=self.test_orbits_data["dfs_err_x"],
-                                               dfs_err_y=self.test_orbits_data["dfs_err_y"])
-        self.test_orbits.show()
-        self.test_orbits.raise_()
-        self.test_orbits.activateWindow()
+    def _show_test_orbit(self, measurement_type):
+        pass
+
+    def _measure_orbit_change(self, which):
+        pass
 
     def _show_console_log(self):
         if self.log_console is None:
