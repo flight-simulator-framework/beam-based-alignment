@@ -160,70 +160,51 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.orbit_at_first_start_click_x = None
         self.orbit_at_first_start_click_y = None
         self.method = self.beam_change_method_combo.currentData()
-        self.n_dfs_measurements = self.no_of_meas_dfs_test_orbit.value()
-        self.n_wfs_measurements = self.no_of_meas_wfs_test_orbit.value()
         self.measure_wakefields_button.clicked.connect(self._wakefields_measurement)
         self.measure_dispersion_button.clicked.connect(self._dispersion_measurement)
         print(self.method)
-        self.disp_quad_scaling_test_orbit_x = []
-        self.disp_quad_scaling_test_orbit_y = []
-        self.disp_rf_phase_test_orbit_x = []
-        self.disp_rf_phase_test_orbit_y = []
-        self.wake_test_orbit_x = []
-        self.wake_test_orbit_y = []
+        self.test_orbit_x = []
+        self.test_orbit_y = []
 
     def _dispersion_measurement(self):
-        for it in range(int(self.n_dfs_measurements)):
-            state0 = self.interface.get_state()
-            O0 = state0.get_orbit()
-            O0x = np.asarray(O0['x'], dtype=float).reshape(-1, 1)
-            O0y = np.asarray(O0['y'], dtype=float).reshape(-1, 1)
-            bpms0 = state0.get_bpms()
-
-            self.interface.change_energy(method=self.method)
-            state1 = self.interface.get_state()
-            self.interface.reset_energy(method=self.method)
-            if self.method==EnergyChangeMethod.DEFAULT:
-                energy_file = os.path.join(self.nsamples_input.text(), f"disp_measurement_{it:04d}_quad_scaling.pkl")
-                state1.save(filename=energy_file)
-                O1 = state1.get_orbit()
-                O1x = np.asarray(O1['x'], dtype=float).reshape(-1, 1)
-                O1y = np.asarray(O1['y'], dtype=float).reshape(-1, 1)
-                bpms1 = state1.get_bpms()
-                self.disp_rf_phase_test_orbit_x.append(O1x)
-                self.disp_rf_phase_test_orbit_y.append(O1y)
-            elif self.method==EnergyChangeMethod.QUADRUPOLE_SCALING:
-                energy_file = os.path.join(self.nsamples_input.text(), f"disp_measurement_{it:04d}_quad_scaling.pkl")
-                state1.save(filename=energy_file)
-                O1 = state1.get_orbit()
-                O1x = np.asarray(O1['x'], dtype=float).reshape(-1, 1)
-                O1y = np.asarray(O1['y'], dtype=float).reshape(-1, 1)
-                bpms1 = state1.get_bpms()
-                self.disp_quad_scaling_test_orbit_x.append(O1x)
-                self.disp_quad_scaling_test_orbit_y.append(O1y)
+        m = self.beam_change_method_combo.currentData()
+        self._measure_orbit_change(lambda: self.interface.change_energy(method=m), lambda: self.interface.reset_energy(method=m), "dispersion_rf_phase", int(self.no_of_meas_dfs_test_orbit.value()))
 
     def _wakefields_measurement(self):
-        for it in range(int(self.n_wfs_measurements)):
-            state0 = self.interface.get_state()
-            O0 = state0.get_orbit()
-            O0x = np.asarray(O0['x'], dtype=float).reshape(-1, 1)
-            O0y = np.asarray(O0['y'], dtype=float).reshape(-1, 1)
-            bpms0 = state0.get_bpms()
+        m = self.beam_change_method_combo.currentData()
+        if m == EnergyChangeMethod.BOTH:
+            change = lambda: self.interface.change_energy(method=m, which_method=2)
+            reset = lambda: self.interface.reset_energy(method=m, which_method=2)
+            self._measure_orbit_change(change, reset, "dispersion_quadrupole_scaling", int(self.no_of_meas_wfs_test_orbit.value()))
+        else:
+            change, reset = self.interface.change_intensity, self.interface.reset_intensity
+            self._measure_orbit_change(change, reset, "wakefield", int(self.no_of_meas_wfs_test_orbit.value()))
 
-            if self.method==EnergyChangeMethod.DEFAULT:
-                self.interface.change_intensity(method=self.method)
-                state2 = self.interface.get_state()
-                self.interface.reset_intensity(method=self.method)
-                wakefield_file = os.path.join(self.nsamples_input.text(), f"wake_measurement_{it:04d}_quad_scaling.pkl")
-                state2.save(filename=wakefield_file)
-                O2 = state2.get_orbit()
-                O2x = np.asarray(O2['x'], dtype=float).reshape(-1, 1)
-                O2y = np.asarray(O2['y'], dtype=float).reshape(-1, 1)
-                bpms2 = state2.get_bpms()
-                self.wake_test_orbit_x.append(O2x)
-                self.wake_test_orbit_y.append(O2y)
-            elif self.method == EnergyChangeMethod.QUADRUPOLE_SCALING:
-                self._dispersion_measurement()
+    def _measure_orbit_change(self, change, reset, name, n):
+        if self._running or not self._apply_beam_change_controls():
+            return
+        self._save_machine_status()
+        _, bpms = self._get_selection()
+        directory = os.path.join(self._session_dir, f"{name}_measurement")
+        os.makedirs(directory, exist_ok=True)
+        self._running = True
+        self.test_orbit_x, self.test_orbit_y = [], []
+        try:
+            for it in range(n):
+                state0 = self.interface.get_state()
+                try:
+                    change()
+                    state1 = self.interface.get_state()
+                finally:
+                    reset()
+                state0.save(filename=os.path.join(directory, f"{it:04d}_nominal.pkl"))
+                state1.save(filename=os.path.join(directory, f"{it:04d}_changed.pkl"))
+                O0, O1 = state0.get_orbit(bpms), state1.get_orbit(bpms)
+                self.test_orbit_x.append(np.asarray(O1["x"], dtype=float) - np.asarray(O0["x"], dtype=float))
+                self.test_orbit_y.append(np.asarray(O1["y"], dtype=float) - np.asarray(O0["y"], dtype=float))
+                QApplication.processEvents()
+        finally:
+            self._running = False
                 
     def _save_machine_status(self):
         saved_at = self._clock_now()
@@ -1547,12 +1528,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self._cancel = True
         QMessageBox.information(self, "Correction", "Stop requested. Finishing current iteration...")
         self.log("Stop requested. Finishing current iteration...")
-
-    def _show_test_orbit(self, measurement_type):
-        pass
-
-    def _measure_orbit_change(self, which):
-        pass
 
     def _show_console_log(self):
         if self.log_console is None:
