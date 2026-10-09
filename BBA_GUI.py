@@ -148,7 +148,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.orbit_at_first_start_click_x = None
         self.orbit_at_first_start_click_y = None
         self.method = self.beam_change_method_combo.currentData()
-        self._test_orbit_results = {}  # measurement name -> last result
+        self._test_orbit_results = {}
         self._measurement_stop_requested = False
         self.measure_dispersion_button.clicked.connect(lambda: self._measure_test_orbit("dfs"))
         self.measure_wakefields_button.clicked.connect(lambda: self._measure_test_orbit("wfs"))
@@ -176,7 +176,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             return
         name, change, reset = self._test_orbit_spec(kind)
         n = int((self.no_of_meas_dfs_test_orbit if kind == "dfs" else self.no_of_meas_wfs_test_orbit).value())
-        settings = self._beam_change_values.copy()  # line edits may change during the measurement
+        settings = self._beam_change_values.copy()  # in case anything changes in GUI line edits
         self._save_machine_status()
         _, bpms = self._get_selection()
         directory = os.path.join(self._session_dir, f"{name}_measurement")
@@ -206,7 +206,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             print_exception(e)
         finally:
             self._running = False
-        if dx:  # keep partial results after Stop or an error
+        if dx:
             self._test_orbit_results[name] = result = {
                 "measurement_type": name, "method": settings["_method"], "settings": settings,
                 "bpm_names": list(bpms), "bpm_unit": self.bpm_unit, "x_samples": np.array(dx), "y_samples": np.array(dy),
@@ -768,7 +768,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         return mean_x, mean_y, std_x, std_y, mean_all, std_all
 
     def _read_params(self):
-        def read(name, default, cast=float):  # an empty or invalid entry falls back to (and shows) the default
+        def read(name, default, cast=float):  # gets the text value and turns it into a float
             widget = getattr(self, name)
             try:
                 return cast(float(widget.text().strip()))
@@ -776,7 +776,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 widget.setText(f"{default:g}")
                 return cast(default)
 
-        # orbit, dispersion and wakefield weights, rcond, iterations, gain, beta, transmission threshold [%]
         return (read("lineEdit", 1.0), read("lineEdit_2", 10.0), read("lineEdit_3", 10.0), read("lineEdit_4", 0.001),
                 read("lineEdit_5", 10, int), read("lineEdit_6", 0.4), read("lineEdit_beta", 0.0), read("transmission_value", 0.65) * 100)
 
@@ -848,7 +847,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             bpms = list(bpms_common)
             n = len(bpms)
             bpm_weights = np.array([self.bpm_weights.get(bpm, (1.0, 1.0, 1.0)) for bpm in bpms], dtype=float).reshape(n, 3)
-            W_x = np.vstack([bpm_weights[:, [k]] for k, w in enumerate((w1, w2, w3)) if w > 0])  # orbit, DFS, WFS rows
+            W_x = np.vstack([bpm_weights[:, [k]] for k, w in enumerate((w1, w2, w3)) if w > 0])
             w_xy_bpms = np.sqrt(np.vstack([W_x, W_x]))  # because the weights are the same, B=vstack(bx,by)
 
             self.setWindowTitle("BBA GUI - [Correction running]")
@@ -1073,11 +1072,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                         for name, target, actual, bad in zip(selected_correctors, current_bdes, current_bact, readback_mismatch) if bad))
 
                 max_vals = np.concatenate([np.full(delta_x.shape, max_curr_h, dtype=float), np.full(delta_y.shape, max_curr_v, dtype=float)])
+                # current_bdes + delta -> clamp(final_bdes) -> set_correctors(final_bdes)
                 new_bdes = clamp(current_bdes + delta_vals, max_vals)
-                if self.interface.set_correctors(selected_correctors, new_bdes) is False:  # the interface already retried
+                if self.interface.set_correctors(selected_correctors, new_bdes) is False:
                     raise RuntimeError("BBA stopped: correctors did not reach their requested currents (the correction is not reliable). "
                                        "See the log for the correctors that failed.")
-                after_bdes, _ = self._corrector_readings(selected_correctors)
+                after_bdes, _ = self._corrector_readings(selected_correctors)  # new bdes and after bdes should be the same
                 applied_delta = after_bdes - current_bdes
 
                 if w2 > 0 and O1x is not None and O1y is not None and prev_Dx is not None and prev_Dy is not None:
@@ -1107,7 +1107,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                         file.write(f"{now}\t{it + 1}\t{corrector}\t{before:.12g}\t{kick:.12g}\t{after:.12g}\n")
 
                 if w1 > 0:
-                    self._append_history("orbit", self._calc_error(x0_vals, y0_vals, ref_x=B0x.ravel(), ref_y=B0y.ravel()))
+                    self._append_history("orbit", self._calc_error(x0_vals, y0_vals, ref_x=B0x.ravel(), ref_y=B0y.ravel()))  # ravel makes data a vector
 
                 if w2 > 0 and O1x is not None and O1y is not None:
                     dx_disp = x1_vals - x0_vals
@@ -1169,7 +1169,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         state.save(filename=filename)
         return state
 
-    def _change_intensity(self):  # with both methods selected, the second beam change is the quadrupole scaling
+    def _change_intensity(self):
         if self.method == EnergyChangeMethod.BOTH:
             return self.interface.change_energy(method=self.method, which_method=2)
         return self.interface.change_intensity()
@@ -1180,7 +1180,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         return self.interface.reset_intensity()
 
     def _corrector_readings(self, names):
-        # (bdes, bact) in the order of names; some interfaces return their own order
         correctors = self.interface.get_correctors(names)
         index = [list(correctors["names"]).index(name) for name in names]
         return tuple(np.asarray(correctors[key], dtype=float).ravel()[index] for key in ("bdes", "bact"))
@@ -1205,7 +1204,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         return [getattr(self, f"_hist_{kind}{suffix}") for suffix in ("_x", "_y", "", "_x_err", "_y_err", "_err")]
 
     def _append_history(self, kind, errors):
-        mean_x, mean_y, std_x, std_y, mean_all, std_all = errors  # from _calc_error
+        mean_x, mean_y, std_x, std_y, mean_all, std_all = errors
         for values, value in zip(self._history(kind), (mean_x, mean_y, mean_all, std_x, std_y, std_all)):
             values.append(value)
 
