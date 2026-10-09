@@ -32,31 +32,11 @@ esrf = [
     "machine-interfaces-esrf>=0.2.2,<0.3",
 ]
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
-packages = [{include = "beam_based_alignment"}, {include = "BBA_GUI.py"}, {include = "BBA_QM_GUI.py"}]
+[tool.hatch.build.targets.wheel]
+only-include = ["beam_based_alignment", "BBA_GUI.py", "BBA_QM_GUI.py"]
 
-[tool.poetry.dependencies]
-machine-interfaces = {source = "flight-simulator"}
-flight-response-matrix = {source = "flight-simulator"}
-machine-interfaces-clear = {source = "flight-simulator"}
-machine-interfaces-atf2 = {source = "flight-simulator"}
-machine-interfaces-facet2 = {source = "flight-simulator"}
-machine-interfaces-esrf = {source = "flight-simulator"}
-pyda = {source = "cern-acc-py", python = ">=3.11,<4"}
-pyda-japc = {source = "cern-acc-py", python = ">=3.11,<4"}
-pyrbac = {source = "cern-acc-py", python = ">=3.11,<4"}
-pyccda = {source = "cern-acc-py", python = ">=3.11,<4"}
-cmmnbuild-dep-manager = {source = "cern-acc-py", python = ">=3.11,<4"}
-[[tool.poetry.source]]
-name = "cern-acc-py"
-url = "https://acc-py-repo.cern.ch/repository/vr-py-releases/simple/"
-priority = "explicit"
-[[tool.poetry.source]]
-name = "flight-simulator"
-url = "https://gitlab.cern.ch/api/v4/groups/363527/-/packages/pypi/simple/"
-priority = "explicit"
 [tool.flight-simulator.migration]
 status = "package-registry"

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1512</width>
-    <height>962</height>
+    <height>928</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -588,6 +588,9 @@ QGroupBox#intensity_measurement_group::title {
                      <property name="decimals">
                       <number>0</number>
                      </property>
+                     <property name="minimum">
+                      <double>1.000000000000000</double>
+                     </property>
                      <property name="maximum">
                       <double>1000.000000000000000</double>
                      </property>
@@ -882,6 +885,9 @@ QGroupBox#energy_measurement_group::title {
                     <widget class="QDoubleSpinBox" name="no_of_meas_dfs_test_orbit">
                      <property name="decimals">
                       <number>0</number>
+                     </property>
+                     <property name="minimum">
+                      <double>1.000000000000000</double>
                      </property>
                      <property name="maximum">
                       <double>1000.000000000000000</double>

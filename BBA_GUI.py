@@ -30,13 +30,13 @@ from machine_interfaces.Backend.SaveOrLoad import SaveOrLoad
 from response_matrix.ResponseMatrix_DFS_WFS import ResponseMatrix_DFS_WFS, AdaptiveResponseMatrix
 import matplotlib.pyplot as plt
 from beam_based_alignment.BBA_helpers.BPM_weights import BPM_weights
+from beam_based_alignment.BBA_helpers.MeasureDispersionWakefields import MeasureDispersionWakefields
 from machine_interfaces.Backend.ActuatorMode import ActuatorMode
 from traceback import print_exception
 from machine_interfaces.Interfaces.interface_setup import INTERFACE_SETUP, get_intensity_labels
 from machine_interfaces.Backend.EnergyChangeMethod import EnergyChangeMethod
 from machine_interfaces.Knobs.jitter_subtraction import (apply_jitter_subtraction, explain_reference_selection, fit_jitter_model)
 from enum import Enum
-
 
 class PlotPopup(QMainWindow):
     def __init__(self, title, parent=None):
@@ -160,37 +160,46 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.orbit_at_first_start_click_x = None
         self.orbit_at_first_start_click_y = None
         self.method = self.beam_change_method_combo.currentData()
-        self.measure_wakefields_button.clicked.connect(self._wakefields_measurement)
-        self.measure_dispersion_button.clicked.connect(self._dispersion_measurement)
-        print(self.method)
-        self.test_orbit_x = []
-        self.test_orbit_y = []
+        self._test_orbit_results = {}  # measurement name -> last result
+        self._measurement_stop_requested = False
+        self.measure_dispersion_button.clicked.connect(lambda: self._measure_test_orbit("dfs"))
+        self.measure_wakefields_button.clicked.connect(lambda: self._measure_test_orbit("wfs"))
+        self.show_dfs_test_orbit_button.clicked.connect(lambda: self._display_test_orbit("dfs"))
+        self.show_wfs_test_orbit_button.clicked.connect(lambda: self._display_test_orbit("wfs"))
+        self.stop_dispersion_measurement_button.clicked.connect(self._stop_measurement)
+        self.stop_wakefields_measurement_button.clicked.connect(self._stop_measurement)
 
-    def _dispersion_measurement(self):
+    def _test_orbit_spec(self, kind):
         m = self.beam_change_method_combo.currentData()
-        self._measure_orbit_change(lambda: self.interface.change_energy(method=m), lambda: self.interface.reset_energy(method=m), "dispersion_rf_phase", int(self.no_of_meas_dfs_test_orbit.value()))
-
-    def _wakefields_measurement(self):
-        m = self.beam_change_method_combo.currentData()
+        if kind == "dfs":
+            name = "dispersion_quadrupole_scaling" if m == EnergyChangeMethod.QUADRUPOLE_SCALING else "dispersion_energy"
+            return name, lambda: self.interface.change_energy(method=m), lambda: self.interface.reset_energy(method=m)
         if m == EnergyChangeMethod.BOTH:
-            change = lambda: self.interface.change_energy(method=m, which_method=2)
-            reset = lambda: self.interface.reset_energy(method=m, which_method=2)
-            self._measure_orbit_change(change, reset, "dispersion_quadrupole_scaling", int(self.no_of_meas_wfs_test_orbit.value()))
-        else:
-            change, reset = self.interface.change_intensity, self.interface.reset_intensity
-            self._measure_orbit_change(change, reset, "wakefield", int(self.no_of_meas_wfs_test_orbit.value()))
+            return ("dispersion_quadrupole_scaling", lambda: self.interface.change_energy(method=m, which_method=2),
+                    lambda: self.interface.reset_energy(method=m, which_method=2))
+        return "wakefields", self.interface.change_intensity, self.interface.reset_intensity
 
-    def _measure_orbit_change(self, change, reset, name, n):
+    def _stop_measurement(self):
+        self._measurement_stop_requested = True
+        self.log("Measurement stop requested. Finishing current iteration...")
+
+    def _measure_test_orbit(self, kind):
         if self._running or not self._apply_beam_change_controls():
             return
+        name, change, reset = self._test_orbit_spec(kind)
+        n = int((self.no_of_meas_dfs_test_orbit if kind == "dfs" else self.no_of_meas_wfs_test_orbit).value())
+        settings = self._beam_change_values.copy()  # line edits may change during the measurement
         self._save_machine_status()
         _, bpms = self._get_selection()
         directory = os.path.join(self._session_dir, f"{name}_measurement")
         os.makedirs(directory, exist_ok=True)
-        self._running = True
-        self.test_orbit_x, self.test_orbit_y = [], []
+        self._running, self._measurement_stop_requested = True, False
+        dx, dy = [], []
+        self.log(f"Measuring {name} test orbit ({n} measurements)...")
         try:
             for it in range(n):
+                if self._measurement_stop_requested:
+                    break
                 state0 = self.interface.get_state()
                 try:
                     change()
@@ -200,12 +209,44 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 state0.save(filename=os.path.join(directory, f"{it:04d}_nominal.pkl"))
                 state1.save(filename=os.path.join(directory, f"{it:04d}_changed.pkl"))
                 O0, O1 = state0.get_orbit(bpms), state1.get_orbit(bpms)
-                self.test_orbit_x.append(np.asarray(O1["x"], dtype=float) - np.asarray(O0["x"], dtype=float))
-                self.test_orbit_y.append(np.asarray(O1["y"], dtype=float) - np.asarray(O0["y"], dtype=float))
+                dx.append(np.asarray(O1["x"], dtype=float) - np.asarray(O0["x"], dtype=float))
+                dy.append(np.asarray(O1["y"], dtype=float) - np.asarray(O0["y"], dtype=float))
                 QApplication.processEvents()
+        except Exception as e:
+            QMessageBox.critical(self, "Measurement error", str(e))
+            self.log(f"Measurement error: {e}")
+            print_exception(e)
         finally:
             self._running = False
-                
+        if dx:  # keep partial results after Stop or an error
+            self._test_orbit_results[name] = result = {
+                "measurement_type": name, "method": settings["_method"], "settings": settings,
+                "bpm_names": list(bpms), "bpm_unit": self.bpm_unit, "x_samples": np.array(dx), "y_samples": np.array(dy),
+                "n_measurements": len(dx), "requested_measurements": n, "save_directory": directory,
+            }
+            self._save_test_orbit(result)
+        self.log(f"{name} test orbit: {len(dx)}/{n} measurements saved in {directory}")
+
+    def _save_test_orbit(self, r):
+        cols = []
+        for key in ("x_samples", "y_samples"):
+            s = np.ma.masked_invalid(r[key])
+            cols += [s.mean(axis=0).filled(np.nan), s.std(axis=0, ddof=1).filled(np.nan)] # average is also calculated from those measurements, so thats why we do N-1 (ddof=1)
+        u = r["bpm_unit"]
+        header = (f"{r['measurement_type']} test orbit: changed - nominal orbit over {r['n_measurements']}/{r['requested_measurements']} measurements\n"
+                  f"method: {r['method']}\nsettings: {r['settings']}\n"
+                  f"BPM\tdx_mean[{u}]\tdx_std[{u}]\tdy_mean[{u}]\tdy_std[{u}]")
+        np.savetxt(os.path.join(r["save_directory"], f"{r['measurement_type']}_test_orbit.txt"),
+                   np.column_stack([np.array(r["bpm_names"], dtype=object), *cols]),
+                   fmt=["%s"] + ["%.6e"] * 4, delimiter="\t", header=header)
+
+    def _display_test_orbit(self, kind):
+        result = self._test_orbit_results.get(self._test_orbit_spec(kind)[0])
+        if result is None:
+            QMessageBox.information(self, "Test orbit", "No test orbit measured for the selected method yet.")
+        else:
+            MeasureDispersionWakefields(result, self).show()
+
     def _save_machine_status(self):
         saved_at = self._clock_now()
         time_str = saved_at.strftime("%y%m%d%H%M%S")
