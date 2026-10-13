@@ -268,7 +268,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _setup_corrector_controls(self):
         self.pushButton_11.clicked.connect(self.load_session_settings)
-        self.setWindowTitle("BBA GUI")
+        self.setWindowTitle(f"BBA GUI - {self.interface.get_name()}")
         self.lineEdit.setText("1")
         self.lineEdit_2.setText("10")
         self.lineEdit_3.setText("10")
