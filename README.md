@@ -21,16 +21,20 @@ Optional jitter subtraction uses upstream reference BPMs to estimate correlated 
 
 The plots show how the measured orbit and enabled correction objectives change over successive iterations. Session data and settings are saved for subsequent inspection.
 
+## Development
+
+Development, issues and pull requests are hosted on [GitHub](https://github.com/flight-simulator-framework/beam-based-alignment). The [CERN GitLab repository](https://gitlab.cern.ch/flight-simulator/beam-based-alignment) receives updates from GitHub through a pull mirror.
+
 ## Installation and startup
 
-On a control-room computer, install the applications with the deployment script of your machine: [CLEAR](https://gitlab.cern.ch/flight-simulator/machine-interfaces/-/blob/master/backends/clear/clear_deploy.md), [ATF2](https://gitlab.cern.ch/flight-simulator/machine-interfaces/-/blob/master/backends/atf2/atf2_deploy.md), [ESRF](https://gitlab.cern.ch/flight-simulator/machine-interfaces/-/blob/master/backends/esrf/esrf_deploy.md) or [FACET2](https://gitlab.cern.ch/flight-simulator/machine-interfaces/-/blob/master/backends/facet2/facet2_deploy.md). It creates a shared virtual environment and one launcher per GUI, e.g. `./BBA_GUI.sh`.
+On a control-room computer, install the applications with the deployment script of your machine: [CLEAR](https://github.com/flight-simulator-framework/machine-interfaces/blob/master/backends/clear/clear_deploy.md), [ATF2](https://github.com/flight-simulator-framework/machine-interfaces/blob/master/backends/atf2/atf2_deploy.md), [ESRF](https://github.com/flight-simulator-framework/machine-interfaces/blob/master/backends/esrf/esrf_deploy.md) or [FACET2](https://github.com/flight-simulator-framework/machine-interfaces/blob/master/backends/facet2/facet2_deploy.md). It creates a shared virtual environment and one launcher per GUI, e.g. `./BBA_GUI.sh`.
 
-For a local installation, use Python 3.11 or newer and keep the repositories in one directory:
+For a local installation, use Python 3.11 or newer and keep the repositories in one directory. The commands below clone from GitHub; to clone from CERN GitLab instead, replace `https://github.com/flight-simulator-framework/` with `https://gitlab.cern.ch/flight-simulator/`:
 
 ```bash
-git clone https://gitlab.cern.ch/flight-simulator/machine-interfaces.git
-git clone https://gitlab.cern.ch/flight-simulator/response-matrix.git
-git clone https://gitlab.cern.ch/flight-simulator/beam-based-alignment.git
+git clone https://github.com/flight-simulator-framework/machine-interfaces.git
+git clone https://github.com/flight-simulator-framework/response-matrix.git
+git clone https://github.com/flight-simulator-framework/beam-based-alignment.git
 python3 -m venv venv
 source venv/bin/activate
 pip install -e machine-interfaces -e machine-interfaces/backends/esrf -e response-matrix -e beam-based-alignment
@@ -38,7 +42,13 @@ cd beam-based-alignment
 python BBA_GUI.py
 ```
 
-Replace `esrf` with `atf2` or `facet2` for another machine. The CLEAR control-system packages are available only from the CERN Acc-Py index; elsewhere, install only the CLEAR simulation:
+Replace `esrf` with `atf2` or `facet2` for another machine. For ATF2, also build the magnet current–strength conversion library from the directory containing the repositories; this requires `gcc`, `gfortran` and `make`:
+
+```bash
+make -C machine-interfaces/backends/atf2/machine_interfaces_atf2/libmagnet libmagnet.so CFLAG=-fPIC
+```
+
+The CLEAR control-system packages are available only from the CERN Acc-Py index; elsewhere, install only the CLEAR simulation:
 
 ```bash
 pip install rf-track cpymad
