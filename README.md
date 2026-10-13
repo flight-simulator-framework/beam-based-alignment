@@ -55,8 +55,6 @@ pip install rf-track cpymad
 pip install --no-deps -e machine-interfaces/backends/clear
 ```
 
-Editable installs pick up `git pull` changes without reinstalling.
-
 Other entry files, using the same environment:
 
 - `BBA_QM_GUI.py`
