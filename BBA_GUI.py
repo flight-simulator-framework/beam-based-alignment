@@ -1292,7 +1292,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 QMessageBox.warning(self, "Warning", f"No {name} directory selected")
                 return
             args = ["--dir1", data_dir, "--dir2", orbit_dir, "--diff", "--compute"]
-        self.handling('ComputeResponseMatrix_GUI.py', cwd=self.cwd, args=args)
+        corrs, bpms = self._get_selection()
+        self.handling('ComputeResponseMatrix_GUI.py', cwd=self.cwd, args=args + ["--correctors", *corrs, "--bpms", *bpms])
 
 
 if __name__ == "__main__":
