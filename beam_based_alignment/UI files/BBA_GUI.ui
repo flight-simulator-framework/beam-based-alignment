@@ -2110,7 +2110,7 @@ QToolButton#beta_tooltip:hover {
                      <item>
                       <widget class="QToolButton" name="transmission_tooltip">
                        <property name="toolTip">
-                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fraction of the initial measured charge (0.65 = 65%). At or below this level, correction stops before another step. If enabled, the previous corrector settings are restored.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Threshold [%] of initial transmission. When the transmission reaches this level, the correction stops.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                        </property>
                        <property name="styleSheet">
                         <string notr="true">QToolButton#transmission_tooltip {
@@ -2133,19 +2133,6 @@ QToolButton#transmission_tooltip:hover {
                       </widget>
                      </item>
                     </layout>
-                   </item>
-                   <item>
-                    <widget class="QCheckBox" name="restore_on_low_transmission_checkbox">
-                     <property name="text">
-                      <string>Restore previous corrector settings on low transmission</string>
-                     </property>
-                     <property name="toolTip">
-                      <string>Stop correction, restore corrector settings from before the last step, verify readbacks and measure transmission again.</string>
-                     </property>
-                     <property name="checked">
-                      <bool>false</bool>
-                     </property>
-                    </widget>
                    </item>
                    <item>
                     <layout class="QHBoxLayout" name="jitter_subtraction_layout">

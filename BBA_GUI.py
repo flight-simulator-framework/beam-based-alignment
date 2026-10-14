@@ -896,10 +896,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             samples_dir = os.path.join(self._session_dir, "BBA_states")
             os.makedirs(samples_dir, exist_ok=True)
             last_completed_iteration = None
-            previous_step = None
-            transmission_stopped = False
-            rejected_states = set()
-            Bx = By = np.zeros((Axx_base.shape[0], 1))
             prev_Dx = prev_Dy = None
 
             for it in range(iters):
@@ -908,13 +904,20 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
                 # nominal
                 self.log("Measuring orbit")
-                nominal_file = os.path.join(samples_dir, f"ITER_{it:04d}_nominal.pkl")
-                state0 = self._measure_state(nominal_file)
-                state0, transmission_stopped = self._check_transmission(
-                    state0, transmission_threshold, previous_step, samples_dir)
-                if transmission_stopped:
-                    rejected_states.add(nominal_file)
-                    break
+                state0 = self._measure_state(os.path.join(samples_dir, f"ITER_{it:04d}_nominal.pkl"))
+                if hasattr(self.interface, "chosen_ict"):
+                    charge = np.asarray(state0.get_icts(self.interface.chosen_ict)["charge"], dtype=float).ravel()
+                    if charge.size and np.isfinite(charge[0]) and charge[0] != 0:
+                        if self.initial_charge_value is None:
+                            self.initial_charge_value = charge[0]
+                        reference = float(self.initial_charge_value)
+                        self._hist_transmission.append(100.0 * charge[0] / reference)
+                        if self._hist_transmission[-1] <= transmission_threshold:
+                            self._stop_correction()
+                            QMessageBox.warning(self, "Transmission below level!",
+                                                "Transmission has reached the threshold. Stoping the correction now, and leaving correctors at current values.")
+                    else:
+                        self._hist_transmission.append(np.nan)
                 if it == 0:
                     self._print_screens(state0, "before")
                 O0 = state0.get_orbit(bpms)
@@ -1092,15 +1095,11 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 max_vals = np.concatenate([np.full(delta_x.shape, max_curr_h, dtype=float), np.full(delta_y.shape, max_curr_v, dtype=float)])
                 # current_bdes + delta -> clamp(final_bdes) -> set_correctors(final_bdes)
                 new_bdes = clamp(current_bdes + delta_vals, max_vals)
-                QApplication.processEvents()
-                if self._cancel:
-                    break
                 if self.interface.set_correctors(selected_correctors, new_bdes) is False:
                     raise RuntimeError("BBA stopped: correctors did not reach their requested currents (the correction is not reliable). "
                                        "See the log for the correctors that failed.")
                 after_bdes, _ = self._corrector_readings(selected_correctors)  # new bdes and after bdes should be the same
                 applied_delta = after_bdes - current_bdes
-                previous_step = (list(selected_correctors), current_bdes.copy())
 
                 if w2 > 0 and O1x is not None and O1y is not None and prev_Dx is not None and prev_Dy is not None:
                     dfs_start = n if w1 > 0 else 0
@@ -1149,12 +1148,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 last_completed_iteration = it
 
             self.setWindowTitle("BBA GUI")
+            QMessageBox.information(self, "Correction", "Correction finished.")
             final_state = self.interface.get_state()
-            if not transmission_stopped:
-                final_state, transmission_stopped = self._check_transmission(
-                    final_state, transmission_threshold, previous_step, samples_dir)
-                if transmission_stopped and last_completed_iteration is not None:
-                    rejected_states.add(os.path.join(samples_dir, f"ITER_{last_completed_iteration + 1:04d}_nominal.pkl"))
             final_machine_status_file = os.path.join(self._session_dir, "machine_status_after_correction.pkl")
             final_state.save(filename=final_machine_status_file)
             self.log(f"Saved machine status after correction: {os.path.basename(final_machine_status_file)}")
@@ -1169,22 +1164,17 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             for key, kind in (("traj", "nominal"), ("dfs", "energy"), ("wfs", "intensity")):
                 if self._data_dirs.get(key):
                     for fn in glob.glob(os.path.join(samples_dir, f"ITER_*_{kind}.pkl")):
-                        if fn not in rejected_states:
-                            shutil.copy(fn, os.path.join(self._data_dirs[key]["dir"], f"{session}_{os.path.basename(fn)}"))
+                        shutil.copy(fn, os.path.join(self._data_dirs[key]["dir"], f"{session}_{os.path.basename(fn)}"))
             self._print_screens(final_state, "after")
             final_bpms = final_state.get_bpms(bpms)
             self._append_abs_rms(np.asarray(final_bpms["x"], dtype=float), np.asarray(final_bpms["y"], dtype=float))
 
-            self._redraw_history_plots()
-            outcome = "Correction stopped." if self._cancel else "Correction finished."
-            self.log(outcome)
+            self.log("Correction finished.")
             self.save_session_settings(w1, w2, w3, rcond, iters, gain, beta,
                                        self.max_horizontal_current_spinbox.value(),
                                        self.max_vertical_current_spinbox.value(),
                                        bool(self.triangular_checkbox.isChecked()), self.bpm_weights, Axx, Ayy, Axy,
                                        Ayx, Bx, By, bool(self.subtract_jitter_checkbox.isChecked()))
-            if not self._cancel:
-                QMessageBox.information(self, "Correction", outcome)
 
         except Exception as e:
             self.setWindowTitle("BBA GUI")
@@ -1214,66 +1204,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         correctors = self.interface.get_correctors(names)
         index = [list(correctors["names"]).index(name) for name in names]
         return tuple(np.asarray(correctors[key], dtype=float).ravel()[index] for key in ("bdes", "bact"))
-
-    def _transmission_percent(self, state):
-        if not hasattr(self.interface, "chosen_ict"):
-            return None
-        charge = np.asarray(state.get_icts(self.interface.chosen_ict)["charge"], dtype=float).ravel()
-        if not charge.size or not np.isfinite(charge[0]) or charge[0] < 0:
-            return np.nan
-        if self.initial_charge_value is None:
-            if charge[0] == 0:
-                return np.nan
-            self.initial_charge_value = float(charge[0])
-        reference = float(self.initial_charge_value)
-        if not np.isfinite(reference) or reference <= 0:
-            return np.nan
-        return 100.0 * charge[0] / reference
-
-    def _restore_previous_corrector_step(self, previous_step, samples_dir):
-        names, targets = previous_step
-        self.log("Restoring corrector settings from before the last correction step.")
-        if self.interface.set_correctors(names, targets) is False:
-            raise RuntimeError("BBA stopped: restoring the previous corrector settings failed. Check the corrector readbacks.")
-        bdes, bact = self._corrector_readings(names)
-        mismatch = ~np.isclose(bdes, targets, rtol=0.0, atol=0.05) | ~np.isclose(bact, targets, rtol=0.0, atol=0.05)
-        if mismatch.any():
-            raise RuntimeError("BBA stopped: previous corrector settings were not restored for " + ", ".join(
-                name for name, bad in zip(names, mismatch) if bad))
-        state = self._measure_state(os.path.join(samples_dir, "transmission_rollback.pkl"))
-        transmission = self._transmission_percent(state)
-        self._hist_transmission.append(transmission)
-        self.log(f"Previous corrector settings restored. Transmission after restore: {transmission:.2f}%.")
-        return state, transmission
-
-    def _check_transmission(self, state, threshold, previous_step, samples_dir):
-        transmission = self._transmission_percent(state)
-        if transmission is None:
-            return state, False
-        self._hist_transmission.append(transmission)
-        if np.isfinite(transmission) and transmission > threshold:
-            return state, False
-        self._cancel = True
-        self._adaptive_R_prev_kick = None
-        self._adaptive_R_prev_orbit = None
-        state.save(filename=os.path.join(samples_dir, "transmission_stop.pkl"))
-        if np.isfinite(transmission):
-            message = f"Transmission is {transmission:.2f}% (threshold {threshold:.2f}%). Correction stopped before another step."
-        else:
-            message = "Transmission could not be measured reliably. Correction stopped before another step."
-        self.log(message)
-        if np.isfinite(transmission) and self.restore_on_low_transmission_checkbox.isChecked() and previous_step is not None:
-            state, recovered = self._restore_previous_corrector_step(previous_step, samples_dir)
-            message += f"\nPrevious corrector settings restored. Transmission after restore: {recovered:.2f}%."
-            if not np.isfinite(recovered) or recovered <= threshold:
-                message += "\nTransmission has not recovered. Check the beam before restarting correction."
-        elif previous_step is None:
-            message += "\nNo correction step from this run is available to restore."
-        else:
-            message += "\nCorrectors remain at their current settings."
-        self._redraw_history_plots()
-        QMessageBox.warning(self, "Transmission: correction stopped", message)
-        return state, True
 
     def _print_screens(self, state, when):
         screens = state.get_screens()
