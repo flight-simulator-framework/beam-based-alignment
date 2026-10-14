@@ -26,9 +26,12 @@ class MainWindow(QM_mode_helpers, CorrectorBBAWindow):
 
     def _configure_qm_window(self):
         self.setWindowTitle("BBA QM GUI")
+        self.restore_on_low_transmission_checkbox.setVisible(False)
 
         self.correctors_list.clear()
         self.correctors_list.addItems(self.qm_corrs)
+        for i in range(self.correctors_list.count()):
+            self._update_corrector_weights(self.correctors_list.item(i))
         self.groupBox_5.setTitle("Quadrupole movers")
 
         self._setup_qm_controls()

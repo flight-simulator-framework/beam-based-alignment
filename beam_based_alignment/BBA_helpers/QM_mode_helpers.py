@@ -196,6 +196,7 @@ class QM_mode_helpers:
         w1, w2, w3, rcond, iters, gain, beta = self._read_params()[:7]
 
         qcorrs, bpms_selected = self._get_selection()
+        qcorrs = [qcorr for qcorr in qcorrs if self.corrector_weights.get(qcorr, 1.0) > 0]
         self._build_jitter_model_for_correction(actuators=qcorrs, bpms=bpms_selected)
         bpms = self._qm_control_bpms(qcorrs, bpms_selected)
         if self.jitter_model is not None:
@@ -248,6 +249,8 @@ class QM_mode_helpers:
 
         max_x = self.max_horizontal_current_spinbox.value()
         max_y = self.max_vertical_current_spinbox.value()
+        qcorr_weights = np.array([self.corrector_weights.get(qcorr, 1.0) for qcorr in qcorrs], dtype=float)
+        qcorr_weights = np.concatenate([qcorr_weights, qcorr_weights])
 
         B0x = None
         B0y = None
@@ -312,7 +315,10 @@ class QM_mode_helpers:
                 except Exception as exc:
                     self.log(f"QM A SVD diagnostic failed: {exc}")
 
-            delta = -gain * (np.linalg.pinv(A, rcond=rcond) @ B).reshape(-1)
+            if beta > 0:
+                delta = -gain * np.linalg.solve(A.T @ A + beta * np.diag(qcorr_weights), A.T @ B).reshape(-1)
+            else:
+                delta = -gain * (np.linalg.pinv(A, rcond=rcond) @ B).reshape(-1)
             self.log(
                 f"QM iteration {it}: ||B||={float(np.linalg.norm(B)):.6g}, "
                 f"max|delta|={float(np.max(np.abs(delta))) if delta.size else 0.0:.6g} um"
