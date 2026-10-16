@@ -898,9 +898,11 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
             samples_dir = os.path.join(self._session_dir, "BBA_states")
             os.makedirs(samples_dir, exist_ok=True)
-            last_completed_iteration = None
             prev_Dx = prev_Dy = None
-
+            last_completed_iteration = None
+            Bx=By=None
+            previous_bdes = None
+            previous_correctors = None
             for it in range(iters):
                 if self._cancel:
                     break
@@ -910,15 +912,24 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 state0 = self._measure_state(os.path.join(samples_dir, f"ITER_{it:04d}_nominal.pkl"))
                 if hasattr(self.interface, "chosen_ict"):
                     charge = np.asarray(state0.get_icts(self.interface.chosen_ict)["charge"], dtype=float).ravel()
-                    if charge.size and np.isfinite(charge[0]) and charge[0] != 0:
+                    if charge.size and np.isfinite(charge[0]):
                         if self.initial_charge_value is None:
+                            if charge[0] ==0:
+                                self._cancel = True
+                                QMessageBox.warning(self, "No beam charge!", "Cannot establish transmission reference from zero charge. Correction stopped.")
+                                break
                             self.initial_charge_value = charge[0]
                         reference = float(self.initial_charge_value)
                         self._hist_transmission.append(100.0 * charge[0] / reference)
                         if self._hist_transmission[-1] <= transmission_threshold:
-                            self._stop_correction()
-                            QMessageBox.warning(self, "Transmission below level!",
-                                                "Transmission has reached the threshold. Stoping the correction now, and leaving correctors at current values.")
+                            self._cancel = True
+                            if previous_bdes is not None and previous_correctors is not None:
+                                if self.interface.set_correctors(previous_correctors, previous_bdes) is False:
+                                    raise RuntimeError("Could not confirm restoration of corrector settings from iteration before. Restore them in the GUI.")
+                                self.log("Correctors settings restored to the values from previous iteration due to low transmission.")
+                            else: self.log("No correction step to undo in this iteration.")
+                            QMessageBox.warning(self, "Transmission below level!", "Transmission has reached the threshold. Correction stopped. See the log for restoration status.")
+                            break
                     else:
                         self._hist_transmission.append(np.nan)
                 if it == 0:
@@ -1120,6 +1131,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 # current_bdes + delta -> clamp(final_bdes) -> set_correctors(final_bdes)
 
                 new_bdes = clamp(current_bdes + delta_vals, max_vals)
+                previous_bdes = current_bdes.copy()
+                previous_correctors = selected_correctors.copy()
                 if self.interface.set_correctors(selected_correctors, new_bdes) is False:
                     raise RuntimeError("BBA stopped: correctors did not reach their requested currents (the correction is not reliable). "
                                        "See the log for the correctors that failed.")
@@ -1173,7 +1186,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 last_completed_iteration = it
 
             self.setWindowTitle("BBA GUI")
-            QMessageBox.information(self, "Correction", "Correction finished.")
             final_state = self.interface.get_state()
             final_machine_status_file = os.path.join(self._session_dir, "machine_status_after_correction.pkl")
             final_state.save(filename=final_machine_status_file)
@@ -1184,6 +1196,23 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     samples_dir, f"ITER_{last_completed_iteration + 1:04d}_nominal.pkl")
                 final_state.save(filename=final_nominal_file)
                 self.log(f"Saved final nominal BBA state: {os.path.basename(final_nominal_file)}")
+                if w2 > 0 and not self._cancel:
+                    self.log("Measuring final dispersion")
+                    try:
+                        dP_P = self.interface.change_energy(method=self.method)
+                        final_energy_state = self._measure_state(os.path.join(
+                            samples_dir, f"ITER_{last_completed_iteration + 1:04d}_energy.pkl"))
+                    finally:
+                        self.interface.reset_energy(method=self.method)
+                    nominal_bpms = final_state.get_bpms(bpms)
+                    energy_bpms = final_energy_state.get_bpms(bpms)
+                    self._append_history("disp", self._calc_error(
+                        np.asarray(energy_bpms["x"]) - np.asarray(nominal_bpms["x"]),
+                        np.asarray(energy_bpms["y"]) - np.asarray(nominal_bpms["y"]),
+                        ref_x=np.zeros(n), ref_y=np.zeros(n),
+                        disp_x=1e3 * np.asarray(target_disp_x) * dP_P,
+                        disp_y=1e3 * np.asarray(target_disp_y) * dP_P))
+                    self._redraw_history_plots()
             # Add this correction's states to the response-matrix data it used, so the next fit includes them
             session = os.path.basename(self._session_dir)
             for key, kind in (("traj", "nominal"), ("dfs", "energy"), ("wfs", "intensity")):
@@ -1194,12 +1223,14 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             final_bpms = final_state.get_bpms(bpms)
             self._append_abs_rms(np.asarray(final_bpms["x"], dtype=float), np.asarray(final_bpms["y"], dtype=float))
 
-            self.log("Correction finished.")
+            ending_message = "Correction stopped." if self._cancel else "Correction finished"
+            self.log(ending_message)
             self.save_session_settings(w1, w2, w3, rcond, iters, gain, beta,
                                        self.max_horizontal_current_spinbox.value(),
                                        self.max_vertical_current_spinbox.value(),
                                        bool(self.triangular_checkbox.isChecked()), self.bpm_weights, Axx, Ayy, Axy,
                                        Ayx, Bx, By, bool(self.subtract_jitter_checkbox.isChecked()))
+            QMessageBox.information(self, "Correction", ending_message)
 
         except Exception as e:
             self.setWindowTitle("BBA GUI")
