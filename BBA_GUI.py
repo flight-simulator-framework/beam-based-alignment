@@ -3,7 +3,7 @@ import sys, os, glob, shutil, matplotlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import numpy as np
-
+from scipy.optimize import lsq_linear
 try:
     from PyQt6 import uic
     from PyQt6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QEvent
@@ -92,6 +92,10 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self._cancel = False
         ui_path = os.path.join(os.path.dirname(beam_based_alignment.__file__), "UI files/BBA_GUI.ui")
         uic.loadUi(ui_path, self)
+        self.history_content.setVisible(False)
+        self.history_toggle_button.toggled.connect(self.history_content.setVisible)
+        self.history_toggle_button.toggled.connect(lambda expanded: self.history_toggle_button.setArrowType(
+            Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow))
         self._default_beam_tooltips = {
             name: getattr(self, name).toolTip()
             for name in ("subtract_jitter_checkbox", "jitter_subtraction_tooltip", "wfs_response_tooltip", "measure_wakefields_tooltip")
@@ -870,8 +874,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
             self.setWindowTitle("BBA GUI - [Correction running]")
             target_disp_x, target_disp_y = self.interface.get_target_dispersion(bpms)
-            max_curr_h = self.max_horizontal_current_spinbox.value()  # gauss * m
-            max_curr_v = self.max_vertical_current_spinbox.value()  # gauss * m
+            max_curr_h = self.max_horizontal_current_spinbox.value()  # gauss * m in RFT, in reality
+            max_curr_v = self.max_vertical_current_spinbox.value()  # gauss * m in RFT, A in reality
 
             def clamp(val, max_val):
                 val = np.asarray(val, dtype=float)
@@ -880,7 +884,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 finite = np.isfinite(max_val) & (max_val > 0.0)
                 result[finite] = np.clip(result[finite], -max_val[finite], max_val[finite])  # clip limits the values in an array
                 return result
-
             plt.ion()
 
             self.use_adaptive_R = getattr(self, "use_adaptive_R", True)
@@ -1071,29 +1074,51 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 B_weighted = w_xy_bpms * B
 
                 corrector_weights = np.array([self.corrector_weights.get(corr, (1.0)) for corr in (Cx_cut + Cy_cut)], dtype=float)
-
-                # adding the (Aw.T*Aw+beta*I)-1
-                if beta > 0:  # with beta, A.T@A+beta*I is always reversible, so we use solve, matrix is square and reversible
-                    delta = -gain * np.linalg.solve(A_weighted.T @ A_weighted + beta * np.diag(corrector_weights), A_weighted.T @ B_weighted)  # without pinv, because we add beta so that singular values will not be near zero
-                # e.g. for weights [1, 10] and beta = 0.1, it will get # [[0.1, 0],
-                                                                       #  [0, 1]]
-                else:  # np.eye(n) singular matrix with shape= number of columns
-                    delta = -gain * (np.linalg.pinv(A_weighted, rcond=rcond) @ B_weighted)
-                nh = len(Cx_cut)
-                delta_x = np.asarray(delta[:nh].ravel(), dtype=float)  # horizontal changes
-                delta_y = np.asarray(delta[nh:].ravel(), dtype=float)  # vertical changes
-                delta_vals = np.concatenate([delta_x, delta_y])
-
+                max_vals = np.concatenate([np.full(len(Cx_cut), max_curr_h, dtype=float), np.full(len(Cy_cut), max_curr_v, dtype=float)])
+                max_vals = np.where(max_vals>0, max_vals, np.inf)
                 selected_correctors = Cx_cut + Cy_cut
                 current_bdes, current_bact = self._corrector_readings(selected_correctors)
                 readback_mismatch = ~np.isclose(current_bact, current_bdes, rtol=0.0, atol=0.05)
+                lower_bounds = -max_vals-current_bdes
+                upper_bounds = max_vals-current_bdes
                 if readback_mismatch.any():
                     raise RuntimeError("Corrector readback differs from its setpoint before correction: " + ", ".join(
                         f"{name} (bdes={target:.6g}, bact={actual:.6g})"
                         for name, target, actual, bad in zip(selected_correctors, current_bdes, current_bact, readback_mismatch) if bad))
 
-                max_vals = np.concatenate([np.full(delta_x.shape, max_curr_h, dtype=float), np.full(delta_y.shape, max_curr_v, dtype=float)])
+                A_solver = A_weighted.copy()
+                b_solver = -gain*B_weighted.ravel()
+
+                # adding the (Aw.T*Aw+beta*I)-1
+                if beta > 0:  # with beta, A.T@A+beta*I is always reversible, so we use solve, matrix is square and reversible
+                    L = np.diag(np.sqrt(corrector_weights*beta))
+                    A_solver = np.vstack((A_solver, L))
+                    b_solver = np.concatenate((b_solver,np.zeros(len(corrector_weights))))
+                    #delta = np.linalg.solve(A_weighted.T @ A_weighted + beta * np.diag(corrector_weights), A_weighted.T @ B_weighted)  # without pinv, because we add beta so that singular values will not be near zero
+                # e.g. for weights [1, 10] and beta = 0.1, it will get # [[0.1, 0],
+                                                                       #  [0, 1]]
+                else:  # np.eye(n) singular matrix with shape= number of columns, beta = 0
+                    # rcond allows to drop weak response directions, that might require huge kicks
+                    U, s, Vt = np.linalg.svd(A_solver, full_matrices = False)
+                    cutoff = rcond * s.max() # biggest singular value
+                    keep = s > cutoff
+                    if not keep.any(): raise RuntimeError("No response matrix directions remain after applyng rcond.")
+                    s_keep = s[keep]
+                    U_keep = U[:, keep]
+                    Vt_keep = Vt[keep, :]
+                    A_solver = np.diag(s_keep)@Vt_keep
+                    b_solver = U_keep.T@b_solver
+                result = lsq_linear(A_solver, b_solver, (lower_bounds, upper_bounds))
+                if not result.success: raise RuntimeError(result.message)
+                delta = result.x
+                    #delta = -gain * (np.linalg.pinv(A_weighted, rcond=rcond) @ B_weighted)
+                nh = len(Cx_cut)
+                delta_x = np.asarray(delta[:nh].ravel(), dtype=float)  # horizontal changes
+                delta_y = np.asarray(delta[nh:].ravel(), dtype=float)  # vertical changes
+                delta_vals = np.concatenate([delta_x, delta_y])
+
                 # current_bdes + delta -> clamp(final_bdes) -> set_correctors(final_bdes)
+
                 new_bdes = clamp(current_bdes + delta_vals, max_vals)
                 if self.interface.set_correctors(selected_correctors, new_bdes) is False:
                     raise RuntimeError("BBA stopped: correctors did not reach their requested currents (the correction is not reliable). "

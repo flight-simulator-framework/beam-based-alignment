@@ -209,7 +209,7 @@ QGroupBox#restore_machine_status_group::title {
                <item>
                 <widget class="QToolButton" name="machine_status_tooltip">
                  <property name="toolTip">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Load a machine_status.pkl file to restore the machine state saved at that time, including quadrupole currents, corrector strengths, and other settings.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Load a machine_status.pkl file to restore the machine state saved at that time, including quadrupole currents, corrector strengths, and other settings.&lt;/p&gt;&lt;p&gt;Machine settings are also saved at the start of each BBA iteration in BBA_states/ITER_xxxx_nominal.pkl. Load the corresponding nominal file to restore the settings from a selected iteration. ITER_0000 contains the settings before the first correction step.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                  <property name="text">
                   <string>?</string>
@@ -1540,6 +1540,265 @@ QGroupBox#groupBox_4::title {
                    <height>170</height>
                   </size>
                  </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="iteration_history_group">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="styleSheet">
+               <string>QFrame#iteration_history_group {
+                background-color: rgb(245, 245, 245);
+                border: 1px solid rgb(210, 210, 210);
+                border-radius: 6px;
+}</string>
+              </property>
+              <layout class="QVBoxLayout" name="iteration_history_container_layout">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>8</number>
+               </property>
+               <property name="topMargin">
+                <number>4</number>
+               </property>
+               <property name="rightMargin">
+                <number>8</number>
+               </property>
+               <property name="bottomMargin">
+                <number>4</number>
+               </property>
+               <item>
+                <widget class="QToolButton" name="history_toggle_button">
+                 <property name="text">
+                  <string>Iteration history</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <property name="arrowType">
+                  <enum>Qt::RightArrow</enum>
+                 </property>
+                 <property name="toolButtonStyle">
+                  <enum>Qt::ToolButtonTextBesideIcon</enum>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="styleSheet">
+                  <string>QToolButton#history_toggle_button {
+                border: none;
+                text-align: left;
+                padding: 4px 0;
+}
+QToolButton#history_toggle_button:hover {
+                background-color: rgb(235, 235, 235);
+}</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QWidget" name="history_content">
+                 <layout class="QVBoxLayout" name="iteration_history_layout">
+                  <property name="spacing">
+                   <number>6</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>6</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>2</number>
+                  </property>
+                  <item>
+                   <layout class="QHBoxLayout" name="history_session_layout">
+                    <item>
+                     <widget class="QLabel" name="history_session_label">
+                      <property name="text">
+                       <string>No history loaded</string>
+                      </property>
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="history_load_button">
+                      <property name="text">
+                       <string>Open history...</string>
+                      </property>
+                      <property name="toolTip">
+                       <string>Select a saved BBA session to browse its iterations.</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="history_navigation_layout">
+                    <item>
+                     <widget class="QToolButton" name="history_previous_button">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="text">
+                       <string>◀</string>
+                      </property>
+                      <property name="toolTip">
+                       <string>View the previous iteration.</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSlider" name="history_iteration_slider">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="maximum">
+                       <number>0</number>
+                      </property>
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="toolTip">
+                       <string>Browse saved iterations without changing machine settings.</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="history_next_button">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="text">
+                       <string>▶</string>
+                      </property>
+                      <property name="toolTip">
+                       <string>View the next iteration.</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="history_iteration_label">
+                      <property name="text">
+                       <string>Iteration</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="history_iteration_spinbox">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="specialValueText">
+                       <string>—</string>
+                      </property>
+                      <property name="maximum">
+                       <number>0</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="history_iteration_count_label">
+                      <property name="text">
+                       <string>/ —</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="history_details_layout">
+                    <item>
+                     <widget class="QLabel" name="history_timestamp_label">
+                      <property name="text">
+                       <string>Time: —</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="history_trajectory_label">
+                      <property name="text">
+                       <string>Trajectory RMS: —</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="history_dispersion_label">
+                      <property name="text">
+                       <string>Dispersion RMS: —</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="history_transmission_label">
+                      <property name="text">
+                       <string>Transmission: —</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="QCheckBox" name="history_restore_algorithm_checkbox">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="text">
+                     <string>Include saved response matrix and correction settings</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="history_actions_layout">
+                    <item>
+                     <widget class="QPushButton" name="history_restore_button">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="text">
+                       <string>Restore selected settings</string>
+                      </property>
+                      <property name="toolTip">
+                       <string>Apply machine settings from the selected iteration.</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="history_resume_button">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="text">
+                       <string>Resume from selected iteration</string>
+                      </property>
+                      <property name="toolTip">
+                       <string>Restore the selected iteration and continue correction.</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
                 </widget>
                </item>
               </layout>
