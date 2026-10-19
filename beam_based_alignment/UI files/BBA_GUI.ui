@@ -1807,6 +1807,13 @@ QToolButton#history_toggle_button:hover {
             <item>
              <layout class="QHBoxLayout" name="buttons_layout">
               <item>
+               <widget class="QPushButton" name="preview_button">
+                <property name="text">
+                 <string>Preview in simulation</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <widget class="QPushButton" name="start_button">
                 <property name="styleSheet">
                  <string notr="true">background-color: red; color: white;</string>

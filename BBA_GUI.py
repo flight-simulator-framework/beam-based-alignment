@@ -1,5 +1,5 @@
 import beam_based_alignment
-import sys, os, glob, shutil, matplotlib
+import sys, os, glob, shutil, matplotlib, importlib, inspect, tempfile
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import numpy as np
@@ -144,6 +144,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.restore_initial_settings.clicked.connect(self._restore_initial_settings)
         self._running = False
         self.start_button.clicked.connect(self._on_start_click)
+        self.preview_button.clicked.connect(self._preview_in_simulation)
+        self._preview_history = None
         self.stop_button.clicked.connect(self._stop_correction)
         self.jitter_model = None
         self.subtract_jitter_checkbox.setChecked(False)
@@ -630,6 +632,58 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.beam_change_group.setEnabled(False)
         self._start_correction()
 
+    def _simulated_twin(self):
+        name = type(self.interface).__module__.removesuffix("_RFTrack") + "_RFTrack"
+        cls = getattr(importlib.import_module(name), name.rsplit(".", 1)[1])
+        options = {"nsamples": getattr(self.interface, "nsamples", 1), "machine_offsets": True}
+        twin = cls(**{key: value for key, value in options.items() if key in inspect.signature(cls).parameters})
+        twin.log = self.log
+        state = self.interface.get_state()
+        if hasattr(twin, "load_machine_state"):
+            twin.load_machine_state(state)
+        else:
+            twin.restore_quadrupoles_state(state)
+            twin.restore_correctors_state(state)
+        for _, field in self._beam_change_fields:
+            if hasattr(twin, field["attribute"]) and getattr(self.interface, field["attribute"], None) is not None:
+                setattr(twin, field["attribute"], getattr(self.interface, field["attribute"]))
+        if hasattr(twin, "dfs_test_energy"):
+            twin.dfs_test_energy = getattr(self.interface, "dfs_test_energy", 0.92)
+        if hasattr(self.interface, "initial_quad_currents"):
+            initial = dict(zip(self.interface.quadrupoles, np.ravel(self.interface.initial_quad_currents)))
+            twin.initial_quad_currents = np.array([initial.get(name, current) for name, current in zip(twin.quadrupoles, twin.get_quadrupoles()["bdes"])])
+        return twin
+
+    def _preview_in_simulation(self):
+        if self._running or not self._apply_beam_change_controls():
+            return
+        self.method = self.beam_change_method_combo.currentData()
+        saved = {name: value for name, value in vars(self).items() if name.startswith("_hist_")}
+        saved.update({name: getattr(self, name, None) for name in ("interface", "_session_dir", "_data_dirs", "initial_charge_value", "jitter_model",
+                                                                  "orbit_at_first_start_click_x", "orbit_at_first_start_click_y", "reset_ref_orb")})
+        session_text = self.session_database_3.text()
+        self._preview_history = None
+        self._running = True
+        try:
+            self.log("Preview in simulation: loading the machine settings into the simulated interface...")
+            self.interface = self._simulated_twin()
+            self._session_dir = tempfile.mkdtemp(prefix="BBA_preview_")
+            self._data_dirs = {key: info and {**info, "dir": self._session_dir} for key, info in self._data_dirs.items()}
+            for name in saved:
+                if name.startswith("_hist_"):
+                    setattr(self, name, [])
+            self._start_correction()
+            self._preview_history = {name: getattr(self, name) for name in saved if name.startswith("_hist_")}
+        except Exception as e:
+            QMessageBox.critical(self, "Preview in simulation", str(e))
+            print_exception(e)
+        finally:
+            for name, value in saved.items():
+                setattr(self, name, value)
+            self._running = False
+            self.session_database_3.setText(session_text)
+            self._redraw_history_plots()
+
     def _expand_data_path(self, path):
         home = os.path.expanduser("~")
         if path.startswith(home + os.sep):  # the character used by the operating system to separate pathname components
@@ -797,7 +851,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 widget.setText(f"{default:g}")
                 return cast(default)
 
-        return (read("lineEdit", 1.0), read("lineEdit_2", 10.0), read("lineEdit_3", 10.0), read("lineEdit_4", 0.001),
+        return (read("lineEdit", 1.0), read("lineEdit_2", 10.0), read("lineEdit_3", 10.0) if (self._data_dirs.get("wfs") or {}).get("ok") else 0.0, read("lineEdit_4", 0.001),
                 read("lineEdit_5", 10, int), read("lineEdit_6", 0.4), read("lineEdit_beta", 0.0), read("transmission_value", 0.65) * 100)
 
     def _reset_reference_orbit(self):
@@ -845,7 +899,33 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         )
         return model
 
-    def _start_correction(self):
+    def _solve_correction(self, A_weighted, B_weighted, corrector_weights, gain, beta, rcond, lower_bounds, upper_bounds):
+        A_solver = A_weighted.copy()
+        b_solver = -gain * B_weighted.ravel()
+
+        if beta > 0:
+            L = np.diag(np.sqrt(corrector_weights * beta))
+            A_solver = np.vstack((A_solver, L))
+            b_solver = np.concatenate((b_solver, np.zeros(len(corrector_weights))))
+        else:
+            U, s, Vt = np.linalg.svd(A_solver, full_matrices=False)
+            cutoff = rcond * s.max()
+            keep = s > cutoff
+            if not keep.any():
+                raise RuntimeError("No response matrix directions remain after applying rcond.")
+
+            s_keep = s[keep]
+            U_keep = U[:, keep]
+            Vt_keep = Vt[keep, :]
+            A_solver = np.vstack((np.diag(s_keep) @ Vt_keep, s.max() * Vt[~keep, :]))
+            b_solver = np.concatenate((U_keep.T @ b_solver, np.zeros(int((~keep).sum()))))
+        result = lsq_linear(A_solver, b_solver, (lower_bounds, upper_bounds))
+        if not result.success:
+            raise RuntimeError(result.message)
+
+        return result.x
+
+    def _start_correction(self, preview = False):
         try:
             corrs, bpms = self._get_selection()
             corrs = [corr for corr in corrs if self.corrector_weights.get(corr, 1.0)  > 0]
@@ -1096,41 +1176,16 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     raise RuntimeError("Corrector readback differs from its setpoint before correction: " + ", ".join(
                         f"{name} (bdes={target:.6g}, bact={actual:.6g})"
                         for name, target, actual, bad in zip(selected_correctors, current_bdes, current_bact, readback_mismatch) if bad))
-
-                A_solver = A_weighted.copy()
-                b_solver = -gain*B_weighted.ravel()
-
-                # adding the (Aw.T*Aw+beta*I)-1
-                if beta > 0:  # with beta, A.T@A+beta*I is always reversible, so we use solve, matrix is square and reversible
-                    L = np.diag(np.sqrt(corrector_weights*beta))
-                    A_solver = np.vstack((A_solver, L))
-                    b_solver = np.concatenate((b_solver,np.zeros(len(corrector_weights))))
-                    #delta = np.linalg.solve(A_weighted.T @ A_weighted + beta * np.diag(corrector_weights), A_weighted.T @ B_weighted)  # without pinv, because we add beta so that singular values will not be near zero
-                # e.g. for weights [1, 10] and beta = 0.1, it will get # [[0.1, 0],
-                                                                       #  [0, 1]]
-                else:  # np.eye(n) singular matrix with shape= number of columns, beta = 0
-                    # rcond allows to drop weak response directions, that might require huge kicks
-                    U, s, Vt = np.linalg.svd(A_solver, full_matrices = False)
-                    cutoff = rcond * s.max() # biggest singular value
-                    keep = s > cutoff
-                    if not keep.any(): raise RuntimeError("No response matrix directions remain after applyng rcond.")
-                    s_keep = s[keep]
-                    U_keep = U[:, keep]
-                    Vt_keep = Vt[keep, :]
-                    A_solver = np.diag(s_keep)@Vt_keep
-                    b_solver = U_keep.T@b_solver
-                result = lsq_linear(A_solver, b_solver, (lower_bounds, upper_bounds))
-                if not result.success: raise RuntimeError(result.message)
-                delta = result.x
+                delta = self._solve_correction(A_weighted, B_weighted, corrector_weights, gain, beta, rcond, lower_bounds, upper_bounds)
                     #delta = -gain * (np.linalg.pinv(A_weighted, rcond=rcond) @ B_weighted)
                 nh = len(Cx_cut)
                 delta_x = np.asarray(delta[:nh].ravel(), dtype=float)  # horizontal changes
                 delta_y = np.asarray(delta[nh:].ravel(), dtype=float)  # vertical changes
                 delta_vals = np.concatenate([delta_x, delta_y])
-
-                # current_bdes + delta -> clamp(final_bdes) -> set_correctors(final_bdes)
-
                 new_bdes = clamp(current_bdes + delta_vals, max_vals)
+                if preview:
+                    return
+
                 previous_bdes = current_bdes.copy()
                 previous_correctors = selected_correctors.copy()
                 if self.interface.set_correctors(selected_correctors, new_bdes) is False:
@@ -1223,7 +1278,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             final_bpms = final_state.get_bpms(bpms)
             self._append_abs_rms(np.asarray(final_bpms["x"], dtype=float), np.asarray(final_bpms["y"], dtype=float))
 
-            ending_message = "Correction stopped." if self._cancel else "Correction finished"
+            ending_message = ("Correction stopped" if self._cancel else "Correction finished") + (" in the simulated interface." if getattr(self.interface, "is_simulation", False) else ".")
             self.log(ending_message)
             self.save_session_settings(w1, w2, w3, rcond, iters, gain, beta,
                                        self.max_horizontal_current_spinbox.value(),
@@ -1292,6 +1347,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         for kind, ax, canvas in self._history_axes():
             x, y, xy, x_err, y_err, xy_err = self._history(kind)
             self._plot_series(ax=ax, canvas=canvas, values_x=x, values_y=y, vals=xy, error_x=x_err, error_y=y_err, error_all=xy_err)
+            if self._preview_history and self._preview_history[f"_hist_{kind}"]:
+                for suffix, color, label in (("_x", "blue", "simulation x"), ("_y", "red", "simulation y"), ("", "gray", "simulation combined")):
+                    values = self._preview_history[f"_hist_{kind}{suffix}"]
+                    ax.plot(range(len(values)), values, linestyle="--", marker="x", alpha=0.6, color=color, label=label)
+                ax.legend(fontsize=7, loc="upper right")
+                canvas.draw_idle()
 
     def _stop_correction(self):
         self._cancel = True
@@ -1321,6 +1382,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 values.clear()
         self._hist_transmission.clear()
         self.initial_charge_value = None
+        self._preview_history = None
         self._redraw_history_plots()
         self._refresh_all_plot_popups()
 
