@@ -936,6 +936,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 bpms = [bpm for bpm in bpms if bpm not in refs]
                 self.log("Removed jitter reference BPMs from correction targets")
             self.log("Starting correction...")
+            self.interface.switch_off_sextupoles()
 
             self._cancel = False
             w1, w2, w3, rcond, iters, gain, beta, transmission_threshold = self._read_params()
@@ -1293,6 +1294,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             self.log(f"Correction error: {e}")
             print_exception(e)  # it shows even the line that generated that error
         finally:
+            self.interface.reset_sextupoles()
             self._running = False
             self.beam_change_group.setEnabled(True)
 

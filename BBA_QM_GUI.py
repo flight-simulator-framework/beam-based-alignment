@@ -62,7 +62,11 @@ class MainWindow(QM_mode_helpers, CorrectorBBAWindow):
         return selected_corrs or self.qm_corrs, selected_bpms or self.initial_state.get_bpms()["names"]
 
     def _start_correction(self, silent=False, preserve_plots=False):
-        self._start_qm_correction(silent=silent, preserve_plots=preserve_plots)
+        self.interface.switch_off_sextupoles()
+        try:
+            self._start_qm_correction(silent=silent, preserve_plots=preserve_plots)
+        finally:
+            self.interface.reset_sextupoles()
 
     def _clear_graphs(self):
         self._cancel = True
