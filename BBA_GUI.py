@@ -1269,6 +1269,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                         disp_x=1e3 * np.asarray(target_disp_x) * dP_P,
                         disp_y=1e3 * np.asarray(target_disp_y) * dP_P))
                     self._redraw_history_plots()
+            if self.interface.reset_sextupoles():
+                self._restore_orbit_after_sextupoles(final_state, corrs, bpms, rcond, max_curr_h, max_curr_v, samples_dir)
             # Add this correction's states to the response-matrix data it used, so the next fit includes them
             session = os.path.basename(self._session_dir)
             for key, kind in (("traj", "nominal"), ("dfs", "energy"), ("wfs", "intensity")):
@@ -1312,6 +1314,25 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         if self.method == EnergyChangeMethod.BOTH:
             return self.interface.reset_energy(method=self.method, which_method=2)
         return self.interface.reset_intensity()
+
+    def _restore_orbit_after_sextupoles(self, bba_state, corrs, bpms, rcond, max_h, max_v, samples_dir):
+        Rxx, Ryy, Rxy, Ryx, _, _, hcorrs, vcorrs, bpms = self._compute_response_matrix(
+            pairs=self._data_dirs["traj"]["pairs"], correctors=corrs, bpms=bpms, triangular=self._force_triangular())
+        correctors = list(hcorrs) + list(vcorrs)
+        inverse = np.linalg.pinv(np.nan_to_num(np.block([[Rxx, Rxy], [Ryx, Ryy]])), rcond=rcond)
+        limits = np.r_[np.full(len(hcorrs), max_h), np.full(len(vcorrs), max_v)]
+        limits = np.where(limits > 0, limits, np.inf)
+        target = bba_state.get_orbit(bpms)
+        for step in range(4):
+            orbit = self._measure_state(os.path.join(samples_dir, f"SEXTUPOLES_ON_{step:04d}.pkl")).get_orbit(bpms)
+            diff = np.nan_to_num(np.r_[orbit["x"] - target["x"], orbit["y"] - target["y"]])
+            rms = np.sqrt(np.mean(diff ** 2))
+            self.log(f"Orbit change after switching the sextupoles back on: rms {rms:.3f} {self.bpm_unit}")
+            if rms <= 0.05or step == 3:
+                return
+            current, _ = self._corrector_readings(correctors)
+            if self.interface.set_correctors(correctors, np.clip(current - inverse @ diff, -limits, limits)) is False:
+                raise RuntimeError("Could not confirm the corrector settings while restoring the orbit after switching the sextupoles back on.")
 
     def _corrector_readings(self, names):
         correctors = self.interface.get_correctors(names)
