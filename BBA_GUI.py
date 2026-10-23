@@ -7,14 +7,14 @@ from scipy.optimize import lsq_linear
 try:
     from PyQt6 import uic
     from PyQt6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QEvent
-    from PyQt6.QtWidgets import (QApplication, QMainWindow, QListWidgetItem, QMessageBox, QVBoxLayout, QDialog, QStyledItemDelegate, QWidget, QInputDialog)
+    from PyQt6.QtWidgets import (QApplication, QMainWindow, QListWidgetItem, QMessageBox, QVBoxLayout, QDialog, QStyledItemDelegate, QWidget, QInputDialog, QFileDialog)
     from PyQt6.QtGui import QPainter, QPixmap
 
     pyqt_version = 6
 except ImportError:
     from PyQt5 import uic
     from PyQt5.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QEvent
-    from PyQt5.QtWidgets import (QApplication, QMainWindow, QListWidgetItem, QMessageBox, QVBoxLayout, QDialog, QStyledItemDelegate, QWidget, QInputDialog)
+    from PyQt5.QtWidgets import (QApplication, QMainWindow, QListWidgetItem, QMessageBox, QVBoxLayout, QDialog, QStyledItemDelegate, QWidget, QInputDialog, QFileDialog)
     from PyQt5.QtGui import QPainter, QPixmap
 
     pyqt_version = 5
@@ -23,6 +23,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from machine_interfaces.Backend.LogConsole import LogConsole
 from machine_interfaces.Backend.SaveOrLoad import SaveOrLoad
+from machine_interfaces.Backend.State import State
 from response_matrix.ResponseMatrix_DFS_WFS import ResponseMatrix_DFS_WFS, AdaptiveResponseMatrix
 import matplotlib.pyplot as plt
 from beam_based_alignment.BBA_helpers.BPM_weights import BPM_weights
@@ -96,6 +97,15 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.history_toggle_button.toggled.connect(self.history_content.setVisible)
         self.history_toggle_button.toggled.connect(lambda expanded: self.history_toggle_button.setArrowType(
             Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow))
+        self._history_files = []
+        self.history_load_button.clicked.connect(self._load_history)
+        self.history_iteration_slider.valueChanged.connect(self.history_iteration_spinbox.setValue)
+        self.history_iteration_spinbox.valueChanged.connect(self.history_iteration_slider.setValue)
+        self.history_iteration_slider.valueChanged.connect(self._show_history_iteration)
+        self.history_previous_button.clicked.connect(lambda: self.history_iteration_slider.setValue(self.history_iteration_slider.value() - 1))
+        self.history_next_button.clicked.connect(lambda: self.history_iteration_slider.setValue(self.history_iteration_slider.value() + 1))
+        self.history_restore_button.clicked.connect(self._restore_history_iteration)
+        self.history_resume_button.clicked.connect(lambda: self._restore_history_iteration() and self._on_start_click())
         self._default_beam_tooltips = {
             name: getattr(self, name).toolTip()
             for name in ("subtract_jitter_checkbox", "jitter_subtraction_tooltip", "wfs_response_tooltip", "measure_wakefields_tooltip")
@@ -555,6 +565,61 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             input_widget.setText("" if value is None else str(value))
         return self._apply_beam_change_controls()
 
+    def _load_history(self, folder=None):
+        folder = folder or QFileDialog.getExistingDirectory(self, "Select BBA session", os.path.expanduser("~/CERN-Flight_Simulator-Data/"))
+        files = sorted(glob.glob(os.path.join(folder, "BBA_states", "ITER_*_nominal.pkl"))) if folder else []
+        if not files:
+            return
+        if State(filename=files[0]).get_interface_id() != f"{type(self.interface).__module__}.{type(self.interface).__name__}":
+            QMessageBox.warning(self, "Iteration history", "This session was recorded on a different interface/machine.")
+            return
+        self._history_folder, self._history_files = folder, files
+        last = len(files) - 1
+        self.history_session_label.setText(os.path.basename(folder))
+        self.history_iteration_count_label.setText(f"/ {last}")
+        self.history_iteration_spinbox.setSpecialValueText("")
+        for widget in (self.history_iteration_slider, self.history_iteration_spinbox):
+            widget.setMaximum(last)
+        for widget in (self.history_previous_button, self.history_next_button, self.history_iteration_slider, self.history_iteration_spinbox,
+                       self.history_restore_algorithm_checkbox, self.history_restore_button, self.history_resume_button):
+            widget.setEnabled(True)
+        self.history_iteration_slider.setValue(last)
+        self._show_history_iteration(last)
+
+    def _show_history_iteration(self, index):
+        if not self._history_files:
+            return
+        state, first = State(filename=self._history_files[index]), State(filename=self._history_files[0])
+        bpms = list(state.get_bpms()["names"])
+        orbit, reference = state.get_orbit(bpms), first.get_orbit(bpms)
+        rms = lambda dx, dy: f"{np.sqrt(np.nanmean(np.r_[dx, dy] ** 2)):.3f} {self.bpm_unit}"
+        energy_file = self._history_files[index].replace("_nominal.pkl", "_energy.pkl")
+        energy = State(filename=energy_file).get_orbit(bpms) if os.path.isfile(energy_file) else None
+        ict = getattr(self.interface, "chosen_ict", None)
+        charge = lambda s: np.nanmean(np.asarray(s.get_icts(ict)["charge"], dtype=float))
+        self.history_timestamp_label.setText(f"Time: {state.get_timestamp():%Y-%m-%d %H:%M:%S}")
+        self.history_trajectory_label.setText(f"Trajectory RMS: {rms(orbit['x'] - reference['x'], orbit['y'] - reference['y'])}")
+        self.history_dispersion_label.setText(f"Dispersion RMS: {rms(energy['x'] - orbit['x'], energy['y'] - orbit['y']) if energy else '—'}")
+        self.history_transmission_label.setText(f"Transmission: {100 * charge(state) / charge(first):.1f} %" if ict else "Transmission: —")
+
+    def _restore_history_iteration(self):
+        if self._running or not self._history_files:
+            return False
+        index = self.history_iteration_slider.value()
+        state = State(filename=self._history_files[index])
+        movers = self.actuator_mode == ActuatorMode.QM
+        question = (f"Set the {'quadrupole movers' if movers else 'correctors'} to iteration {index} "
+                    f"({state.get_timestamp():%H:%M:%S}) of {os.path.basename(self._history_folder)}?")
+        if QMessageBox.question(self, "Iteration history", question) != QMessageBox.StandardButton.Yes:
+            return False
+        if self.history_restore_algorithm_checkbox.isChecked():
+            self.load_session_settings(self._history_folder)
+        restored = self.interface.restore_quadrupoles_state(state) if movers else self.interface.restore_correctors_state(state)
+        if restored is False:
+            QMessageBox.warning(self, "Iteration history", "Not every corrector was confirmed at its saved value. Check them on the machine.")
+        self.log(f"Machine set to iteration {index} of {self._history_folder}")
+        return True
+
     def _restore_initial_settings(self):
         self.log("Restoring initial settings...")
         self._cancel = True
@@ -631,6 +696,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self._running = True
         self.beam_change_group.setEnabled(False)
         self._start_correction()
+        self._load_history(self._session_dir)
 
     def _simulated_twin(self):
         name = type(self.interface).__module__.removesuffix("_RFTrack") + "_RFTrack"
