@@ -98,14 +98,14 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.history_toggle_button.toggled.connect(lambda expanded: self.history_toggle_button.setArrowType(
             Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow))
         self._history_files = []
-        self.history_load_button.clicked.connect(self._load_history)
+        self._correction_dir = None
+        self.history_load_button.clicked.connect(lambda: self._load_history(load_settings=True))
         self.history_iteration_slider.valueChanged.connect(self.history_iteration_spinbox.setValue)
         self.history_iteration_spinbox.valueChanged.connect(self.history_iteration_slider.setValue)
         self.history_iteration_slider.valueChanged.connect(self._show_history_iteration)
         self.history_previous_button.clicked.connect(lambda: self.history_iteration_slider.setValue(self.history_iteration_slider.value() - 1))
         self.history_next_button.clicked.connect(lambda: self.history_iteration_slider.setValue(self.history_iteration_slider.value() + 1))
         self.history_restore_button.clicked.connect(self._restore_history_iteration)
-        self.history_resume_button.clicked.connect(lambda: self._restore_history_iteration() and self._on_start_click())
         self._default_beam_tooltips = {
             name: getattr(self, name).toolTip()
             for name in ("subtract_jitter_checkbox", "jitter_subtraction_tooltip", "wfs_response_tooltip", "measure_wakefields_tooltip")
@@ -565,7 +565,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             input_widget.setText("" if value is None else str(value))
         return self._apply_beam_change_controls()
 
-    def _load_history(self, folder=None):
+    def _load_history(self, folder=None, load_settings=False):
         folder = folder or QFileDialog.getExistingDirectory(self, "Select BBA session", os.path.expanduser("~/CERN-Flight_Simulator-Data/"))
         files = sorted(glob.glob(os.path.join(folder, "BBA_states", "ITER_*_nominal.pkl"))) if folder else []
         if not files:
@@ -581,10 +581,13 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         for widget in (self.history_iteration_slider, self.history_iteration_spinbox):
             widget.setMaximum(last)
         for widget in (self.history_previous_button, self.history_next_button, self.history_iteration_slider, self.history_iteration_spinbox,
-                       self.history_restore_algorithm_checkbox, self.history_restore_button, self.history_resume_button):
+                       self.history_restore_button):
             widget.setEnabled(True)
         self.history_iteration_slider.setValue(last)
         self._show_history_iteration(last)
+        if load_settings:
+            self.load_session_settings(folder)
+            self._redraw_history_plots()
 
     def _show_history_iteration(self, index):
         if not self._history_files:
@@ -604,21 +607,18 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
     def _restore_history_iteration(self):
         if self._running or not self._history_files:
-            return False
+            return
         index = self.history_iteration_slider.value()
         state = State(filename=self._history_files[index])
         movers = self.actuator_mode == ActuatorMode.QM
         question = (f"Set the {'quadrupole movers' if movers else 'correctors'} to iteration {index} "
                     f"({state.get_timestamp():%H:%M:%S}) of {os.path.basename(self._history_folder)}?")
         if QMessageBox.question(self, "Iteration history", question) != QMessageBox.StandardButton.Yes:
-            return False
-        if self.history_restore_algorithm_checkbox.isChecked():
-            self.load_session_settings(self._history_folder)
+            return
         restored = self.interface.restore_quadrupoles_state(state) if movers else self.interface.restore_correctors_state(state)
         if restored is False:
             QMessageBox.warning(self, "Iteration history", "Not every corrector was confirmed at its saved value. Check them on the machine.")
         self.log(f"Machine set to iteration {index} of {self._history_folder}")
-        return True
 
     def _restore_initial_settings(self):
         self.log("Restoring initial settings...")
@@ -692,7 +692,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         if self._running or not self._apply_beam_change_controls():
             return
         self.method = self.beam_change_method_combo.currentData()
-        self._save_machine_status()
+        if self._correction_dir is None or self.actuator_mode == ActuatorMode.QM:
+            self._save_machine_status()
+            self._correction_dir = self._session_dir
+        else:
+            self._session_dir = self._correction_dir
+            self.session_database_3.setText(self._session_dir)
         self._running = True
         self.beam_change_group.setEnabled(False)
         self._start_correction()
@@ -1045,6 +1050,8 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
             samples_dir = os.path.join(self._session_dir, "BBA_states")
             os.makedirs(samples_dir, exist_ok=True)
+            first = max(len(glob.glob(os.path.join(samples_dir, "ITER_*_nominal.pkl"))) - 1, 0)
+            state_file = lambda it, kind: os.path.join(samples_dir, f"ITER_{first + it:04d}_{kind}.pkl")
             prev_Dx = prev_Dy = None
             last_completed_iteration = None
             Bx=By=None
@@ -1056,7 +1063,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
 
                 # nominal
                 self.log("Measuring orbit")
-                state0 = self._measure_state(os.path.join(samples_dir, f"ITER_{it:04d}_nominal.pkl"))
+                state0 = self._measure_state(state_file(it, "nominal"))
                 if hasattr(self.interface, "chosen_ict"):
                     charge = np.asarray(state0.get_icts(self.interface.chosen_ict)["charge"], dtype=float).ravel()
                     if charge.size and np.isfinite(charge[0]):
@@ -1122,7 +1129,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     self.log("Measuring dispersion")
                     try:
                         dP_P = self.interface.change_energy(method=self.method)
-                        state1 = self._measure_state(os.path.join(samples_dir, f"ITER_{it:04d}_energy.pkl"))
+                        state1 = self._measure_state(state_file(it, "energy"))
                     finally:
                         self.interface.reset_energy(method=self.method)
                     O1 = state1.get_orbit(bpms)
@@ -1149,7 +1156,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     self.log(self._intensity_labels["measuring"])
                     try:
                         self._change_intensity()
-                        state2 = self._measure_state(os.path.join(samples_dir, f"ITER_{it:04d}_intensity.pkl"))
+                        state2 = self._measure_state(state_file(it, "intensity"))
                     finally:
                         self._reset_intensity()
                     O2 = state2.get_orbit(bpms)
@@ -1285,7 +1292,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                         file.write("time\titeration\tcorrector\tbdes_before\tapplied_kick\tbdes_after\n")
                     now = datetime.now().isoformat(timespec="seconds")
                     for corrector, before, kick, after in zip(selected_correctors, current_bdes, applied_delta, after_bdes):
-                        file.write(f"{now}\t{it + 1}\t{corrector}\t{before:.12g}\t{kick:.12g}\t{after:.12g}\n")
+                        file.write(f"{now}\t{first + it + 1}\t{corrector}\t{before:.12g}\t{kick:.12g}\t{after:.12g}\n")
 
                 if w1 > 0:
                     self._append_history("orbit", self._calc_error(x0_vals, y0_vals, ref_x=B0x.ravel(), ref_y=B0y.ravel()))  # ravel makes data a vector
@@ -1314,16 +1321,14 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             self.log(f"Saved machine status after correction: {os.path.basename(final_machine_status_file)}")
             final_state = self._apply_jitter_subtraction_to_state(final_state)
             if last_completed_iteration is not None:
-                final_nominal_file = os.path.join(
-                    samples_dir, f"ITER_{last_completed_iteration + 1:04d}_nominal.pkl")
+                final_nominal_file = state_file(last_completed_iteration + 1, "nominal")
                 final_state.save(filename=final_nominal_file)
                 self.log(f"Saved final nominal BBA state: {os.path.basename(final_nominal_file)}")
                 if w2 > 0 and not self._cancel:
                     self.log("Measuring final dispersion")
                     try:
                         dP_P = self.interface.change_energy(method=self.method)
-                        final_energy_state = self._measure_state(os.path.join(
-                            samples_dir, f"ITER_{last_completed_iteration + 1:04d}_energy.pkl"))
+                        final_energy_state = self._measure_state(state_file(last_completed_iteration + 1, "energy"))
                     finally:
                         self.interface.reset_energy(method=self.method)
                     nominal_bpms = final_state.get_bpms(bpms)
@@ -1394,7 +1399,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             diff = np.nan_to_num(np.r_[orbit["x"] - target["x"], orbit["y"] - target["y"]])
             rms = np.sqrt(np.mean(diff ** 2))
             self.log(f"Orbit change after switching the sextupoles back on: rms {rms:.3f} {self.bpm_unit}")
-            if rms <= 0.05or step == 3:
+            if rms <= 0.05 or step == 3:
                 return
             current, _ = self._corrector_readings(correctors)
             if self.interface.set_correctors(correctors, np.clip(current - inverse @ diff, -limits, limits)) is False:
@@ -1471,6 +1476,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 values.clear()
         self._hist_transmission.clear()
         self.initial_charge_value = None
+        self._correction_dir = None
         self._preview_history = None
         self._redraw_history_plots()
         self._refresh_all_plot_popups()

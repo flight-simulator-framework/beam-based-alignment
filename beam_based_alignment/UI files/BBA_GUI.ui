@@ -1646,8 +1646,30 @@ QToolButton#history_toggle_button:hover {
                       <property name="text">
                        <string>Open history...</string>
                       </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="history_load_tooltip">
                       <property name="toolTip">
-                       <string>Select a saved BBA session to browse its iterations.</string>
+                       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select a saved BBA session to browse its iterations. Its correction settings and response matrix data are loaded as well.&lt;/p&gt;&lt;p&gt;Consecutive corrections started with START are saved in the &lt;span style=&quot; font-weight:600;&quot;&gt;same session&lt;/span&gt; and numbered continuously. A new session starts after the graphs are cleared.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QToolButton#history_load_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#history_load_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
+                      </property>
+                      <property name="text">
+                       <string>?</string>
                       </property>
                      </widget>
                     </item>
@@ -1663,9 +1685,6 @@ QToolButton#history_toggle_button:hover {
                       <property name="text">
                        <string>◀</string>
                       </property>
-                      <property name="toolTip">
-                       <string>View the previous iteration.</string>
-                      </property>
                      </widget>
                     </item>
                     <item>
@@ -1679,9 +1698,6 @@ QToolButton#history_toggle_button:hover {
                       <property name="orientation">
                        <enum>Qt::Horizontal</enum>
                       </property>
-                      <property name="toolTip">
-                       <string>Browse saved iterations without changing machine settings.</string>
-                      </property>
                      </widget>
                     </item>
                     <item>
@@ -1691,9 +1707,6 @@ QToolButton#history_toggle_button:hover {
                       </property>
                       <property name="text">
                        <string>▶</string>
-                      </property>
-                      <property name="toolTip">
-                       <string>View the next iteration.</string>
                       </property>
                      </widget>
                     </item>
@@ -1724,6 +1737,31 @@ QToolButton#history_toggle_button:hover {
                       </property>
                      </widget>
                     </item>
+                    <item>
+                     <widget class="QToolButton" name="history_iteration_tooltip">
+                      <property name="toolTip">
+                       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Browse the saved iterations with the arrows, the slider or the number field. Browsing &lt;span style=&quot; font-weight:600;&quot;&gt;does not change&lt;/span&gt; the machine settings.&lt;/p&gt;&lt;p&gt;Iteration 0 is the machine state &lt;span style=&quot; font-weight:600;&quot;&gt;before the first correction step&lt;/span&gt;. Iteration N is the state after N correction steps, and the last one is the state after the last correction.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QToolButton#history_iteration_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#history_iteration_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
+                      </property>
+                      <property name="text">
+                       <string>?</string>
+                      </property>
+                     </widget>
+                    </item>
                    </layout>
                   </item>
                   <item>
@@ -1736,11 +1774,87 @@ QToolButton#history_toggle_button:hover {
                      </widget>
                     </item>
                     <item>
+                     <widget class="QToolButton" name="history_timestamp_tooltip">
+                      <property name="toolTip">
+                       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time when the machine state of the selected iteration was recorded.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QToolButton#history_timestamp_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#history_timestamp_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
+                      </property>
+                      <property name="text">
+                       <string>?</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="history_timestamp_spacer">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
                      <widget class="QLabel" name="history_trajectory_label">
                       <property name="text">
                        <string>Trajectory RMS: —</string>
                       </property>
                      </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="history_trajectory_tooltip">
+                      <property name="toolTip">
+                       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;RMS difference between the orbit of the selected iteration and the orbit of &lt;span style=&quot; font-weight:600;&quot;&gt;iteration 0&lt;/span&gt;, over all BPMs, horizontal and vertical together.&lt;/p&gt;&lt;p&gt;It shows how far the correction has moved the orbit from the starting orbit, not the absolute orbit. With DFS or WFS it can grow while the beam improves.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QToolButton#history_trajectory_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#history_trajectory_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
+                      </property>
+                      <property name="text">
+                       <string>?</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="history_trajectory_spacer">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                     </spacer>
                     </item>
                     <item>
                      <widget class="QLabel" name="history_dispersion_label">
@@ -1750,23 +1864,76 @@ QToolButton#history_toggle_button:hover {
                      </widget>
                     </item>
                     <item>
+                     <widget class="QToolButton" name="history_dispersion_tooltip">
+                      <property name="toolTip">
+                       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;RMS of the orbit change caused by the energy change in the selected iteration (orbit at changed energy minus nominal orbit), over all BPMs, horizontal and vertical together.&lt;/p&gt;&lt;p&gt;It is &lt;span style=&quot; font-weight:600;&quot;&gt;not normalised&lt;/span&gt; by the energy change and the target dispersion is not subtracted. Shown only for iterations measured with DFS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QToolButton#history_dispersion_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#history_dispersion_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
+                      </property>
+                      <property name="text">
+                       <string>?</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="history_dispersion_spacer">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
                      <widget class="QLabel" name="history_transmission_label">
                       <property name="text">
                        <string>Transmission: —</string>
                       </property>
                      </widget>
                     </item>
+                    <item>
+                     <widget class="QToolButton" name="history_transmission_tooltip">
+                      <property name="toolTip">
+                       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Beam charge on the transmission monitor (ICT) in the selected iteration, relative to &lt;span style=&quot; font-weight:600;&quot;&gt;iteration 0&lt;/span&gt; of this session, in percent.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QToolButton#history_transmission_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#history_transmission_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
+                      </property>
+                      <property name="text">
+                       <string>?</string>
+                      </property>
+                     </widget>
+                    </item>
                    </layout>
-                  </item>
-                  <item>
-                   <widget class="QCheckBox" name="history_restore_algorithm_checkbox">
-                    <property name="enabled">
-                     <bool>false</bool>
-                    </property>
-                    <property name="text">
-                     <string>Include saved response matrix and correction settings</string>
-                    </property>
-                   </widget>
                   </item>
                   <item>
                    <layout class="QHBoxLayout" name="history_actions_layout">
@@ -1778,21 +1945,30 @@ QToolButton#history_toggle_button:hover {
                       <property name="text">
                        <string>Restore selected settings</string>
                       </property>
-                      <property name="toolTip">
-                       <string>Apply machine settings from the selected iteration.</string>
-                      </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QPushButton" name="history_resume_button">
-                      <property name="enabled">
-                       <bool>false</bool>
+                     <widget class="QToolButton" name="history_restore_tooltip">
+                      <property name="toolTip">
+                       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the correctors (quadrupole movers in QM mode) to the values saved in the selected iteration, after you confirm.&lt;/p&gt;&lt;p&gt;To continue the correction from that iteration, click &lt;span style=&quot; font-weight:600;&quot;&gt;START&lt;/span&gt; afterwards.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QToolButton#history_restore_tooltip {
+    border: 1px solid #888;
+    border-radius: 10px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0px;
+    font-weight: bold;
+}
+QToolButton#history_restore_tooltip:hover {
+    background-color: #e6e6e6;
+}</string>
                       </property>
                       <property name="text">
-                       <string>Resume from selected iteration</string>
-                      </property>
-                      <property name="toolTip">
-                       <string>Restore the selected iteration and continue correction.</string>
+                       <string>?</string>
                       </property>
                      </widget>
                     </item>
