@@ -934,6 +934,16 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             self.jitter_model = None
             return None
 
+        _, w2, w3, *_ = self._read_params()
+        if w2 > 0 or w3 > 0:
+            message = (f"Jitter subtraction is not applied while DFS or {self._intensity_labels['compact_label']} is used (w2 or w3 > 0). "
+                       "The energy or intensity change also moves the reference BPMs, so the subtraction would remove part of the measured signal. "
+                       "The correction continues without jitter subtraction.")
+            self.log(message)
+            QMessageBox.warning(self, "Jitter subtraction", message)
+            self.jitter_model = None
+            return None
+
         sequence = self.interface.get_sequence()
         refs, reason = explain_reference_selection(bpms, actuators, sequence, min_refs=2)
 
@@ -1001,13 +1011,13 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             corrs, bpms = self._get_selection()
             corrs = [corr for corr in corrs if self.corrector_weights.get(corr, 1.0)  > 0]
             if not corrs: raise ValueError("All corrector weights are set to zero.")
+            self.log("Starting correction...")
+            self.interface.switch_off_sextupoles()
             self._build_jitter_model_for_correction(actuators=corrs, bpms=bpms)
             if self.jitter_model is not None:
                 refs = set(self.jitter_model["reference_bpms"])
                 bpms = [bpm for bpm in bpms if bpm not in refs]
                 self.log("Removed jitter reference BPMs from correction targets")
-            self.log("Starting correction...")
-            self.interface.switch_off_sextupoles()
 
             self._cancel = False
             w1, w2, w3, rcond, iters, gain, beta, transmission_threshold = self._read_params()
