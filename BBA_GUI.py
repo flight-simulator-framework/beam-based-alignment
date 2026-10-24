@@ -306,6 +306,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
         self.sysid_kick = sysid_kick
         self.bpm_unit = bpm_unit
         self.corrs_unit = corrs_unit
+        self.current_groupbox_right.setTitle(f"Max strength ({self.corrs_unit})" if self.corrs_unit else "Max strength")
         max_curr_h = 0.0
         max_curr_v = 0.0
         if correctors_list is not None:
