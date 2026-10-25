@@ -1052,8 +1052,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             self.use_adaptive_R = getattr(self, "use_adaptive_R", True)
             self._adaptive_R = None  # the matrix from files already includes earlier corrections
             self._adaptive_R_prev_kick = None
-            self._adaptive_R_prev_orbit = None
-            adaptive_orbit_only = self.use_adaptive_R and w1 > 0 and w2 == 0 and w3 == 0
+            self._adaptive_R_prev_B = None
             if w2 > 0:
                 self.interface.reset_energy(method=self.method)
             if w3 > 0:
@@ -1102,9 +1101,6 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 O0 = state0.get_orbit(bpms)
                 O0x = np.asarray(O0['x'], dtype=float).reshape(-1, 1)
                 O0y = np.asarray(O0['y'], dtype=float).reshape(-1, 1)
-                orbit_now = np.concatenate([O0x, O0y]).ravel()
-                if adaptive_orbit_only and self._adaptive_R is not None and self._adaptive_R_prev_kick is not None:
-                    self._adaptive_R.update(self._adaptive_R_prev_kick, orbit_now - self._adaptive_R_prev_orbit)
                 bpms0 = state0.get_bpms(bpms)
                 x0_vals = np.asarray(bpms0['x'], dtype=float)
                 y0_vals = np.asarray(bpms0['y'], dtype=float)
@@ -1205,6 +1201,7 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 Axx_it, Ayy_it, Axy_it, Ayx_it = (np.array(M, copy=True) for M in (Axx_base, Ayy_base, Axy_base, Ayx_base))
                 Bx = np.vstack(Bx)
                 By = np.vstack(By)
+                B_now = np.vstack([Bx, By]).ravel()
 
                 for M in (Axx_it, Ayy_it, Axy_it, Ayx_it):
                     M[np.isnan(M)] = 0
@@ -1235,11 +1232,12 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                 A = np.block([[Axx_it, Axy_it],
                               [Ayx_it, Ayy_it]])
 
-                if adaptive_orbit_only:
+                if self.use_adaptive_R:
                     if self._adaptive_R is None or self._adaptive_R.R0.shape != A.shape:
                         self._adaptive_R = AdaptiveResponseMatrix(A)  # first use, or corrector/BPM selection changed
                     else:
-                        A = self._adaptive_R.R
+                        self._adaptive_R.update(self._adaptive_R_prev_kick, B_now - self._adaptive_R_prev_B)
+                        A = np.where(A != 0, self._adaptive_R.R, 0.0)
 
                 B = np.vstack([Bx, By])
 
@@ -1292,9 +1290,9 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
                     dfs_plot_ax.plot(range(n), dfs_prediction_y, color="orange", linestyle="--", label="R prediction y")
                     dfs_plot_ax.legend()
                     dfs_plot_ax.figure.canvas.draw_idle()
-                if adaptive_orbit_only:
+                if self.use_adaptive_R:
                     self._adaptive_R_prev_kick = applied_delta.copy()
-                    self._adaptive_R_prev_orbit = orbit_now
+                    self._adaptive_R_prev_B = B_now
 
                 kicks_path = os.path.join(self._session_dir, "kicks.txt")
                 write_header = not os.path.exists(kicks_path)
@@ -1357,8 +1355,10 @@ class MainWindow(QMainWindow, SaveOrLoad, ResponseMatrix_DFS_WFS):
             session = os.path.basename(self._session_dir)
             for key, kind in (("traj", "nominal"), ("dfs", "energy"), ("wfs", "intensity")):
                 if self._data_dirs.get(key):
+                    target = os.path.join(self._data_dirs[key]["dir"], "BBA_iterations")
                     for fn in glob.glob(os.path.join(samples_dir, f"ITER_*_{kind}.pkl")):
-                        shutil.copy(fn, os.path.join(self._data_dirs[key]["dir"], f"{session}_{os.path.basename(fn)}"))
+                        os.makedirs(target, exist_ok=True)
+                        shutil.copy(fn, os.path.join(target, f"{session}_{os.path.basename(fn)}"))
             self._print_screens(final_state, "after")
             final_bpms = final_state.get_bpms(bpms)
             self._append_abs_rms(np.asarray(final_bpms["x"], dtype=float), np.asarray(final_bpms["y"], dtype=float))
